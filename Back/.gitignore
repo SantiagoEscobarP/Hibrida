@@ -1,0 +1,21 @@
+# Entornos virtuales (¡Nunca los subas a GitHub!)
+.venv/
+venv/
+env/
+ENV/
+
+# Archivos temporales de Python (Caché)
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Archivos de configuración local y secretos (Llaves, contraseñas, tokens)
+.env
+.env.local
+
+# Bases de datos locales de prueba (si usas SQLite)
+*.sqlite3
+
+# Carpetas ocultas de editores de código (Opcional)
+.vscode/
+.idea/
