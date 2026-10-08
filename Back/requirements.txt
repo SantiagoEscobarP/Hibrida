@@ -1,5 +1,6 @@
 fastapi
-uvicorn 
-motor 
-sparqlwrapper 
+pyjwt
+httpx
+python-dotenv
+uvicorn
 pydantic

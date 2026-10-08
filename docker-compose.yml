@@ -1,0 +1,69 @@
+services:
+  # Base de datos de Grafos RDF / SPARQL
+  fuseki:
+    image: secoresearch/fuseki:latest
+    container_name: news_fuseki
+    restart: unless-stopped
+    ports:
+      - "${FUSEKI_PORT}:3030"
+    environment:
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+      - JAVA_OPTIONS=-Xmx2048m -Xms512m
+    volumes:
+      - fuseki_data:/fuseki
+    networks:
+      - news_network
+
+  # Base de datos relacional para Keycloak
+  keycloak_db:
+    image: postgres:16-alpine
+    container_name: news_keycloak_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_keycloak_data:/var/lib/postgresql/data
+    networks:
+      - news_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Servidor de Identidad y Acceso (IAM)
+  keycloak:
+    image: quay.io/keycloak/keycloak:latest
+    container_name: news_keycloak
+    restart: unless-stopped
+    command: start-dev --import-realm
+    ports:
+      - "${KEYCLOAK_PORT}:8080"
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://keycloak_db:5432/${POSTGRES_DB}
+      KC_DB_USERNAME: ${POSTGRES_USER}
+      KC_DB_PASSWORD: ${POSTGRES_PASSWORD}
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+      KC_HTTP_RELATIVE_PATH: /
+      KC_HEALTH_ENABLED: "true"
+    depends_on:
+      keycloak_db:
+        condition: service_healthy
+    volumes:
+      - ./keycloak/realms:/opt/keycloak/data/import
+    networks:
+      - news_network
+
+volumes:
+  fuseki_data:
+    driver: local
+  postgres_keycloak_data:
+    driver: local
+
+networks:
+  news_network:
+    driver: bridge
