@@ -1,77 +1,66 @@
 import { useState, useEffect } from 'react';
 import keycloak, { initKeycloak } from './services/keycloak';
-import api from './services/api';
+import FormularioNoticia from './components/FormularioNoticia';
 
 export default function App() {
   const [authReady, setAuthReady] = useState(false);
   const [userInfo, setUserInfo] = useState(null);
-  const [autoridades, setAutoridades] = useState([]);
-  const [tipoFiltro, setTipoFiltro] = useState('');
 
   useEffect(() => {
-    initKeycloak(() => {
+    initKeycloak((authenticated) => {
       setAuthReady(true);
-      if (keycloak.authenticated) {
+      if (authenticated) {
         setUserInfo({
-          name: keycloak.tokenParsed?.preferred_username,
+          username: keycloak.tokenParsed?.preferred_username,
           roles: keycloak.tokenParsed?.realm_access?.roles || [],
         });
       }
     });
   }, []);
 
-  const cargarAutoridades = async () => {
-    try {
-      const url = tipoFiltro ? `/api/autoridades?tipo=${tipoFiltro}` : '/api/autoridades';
-      const res = await api.get(url);
-      setAutoridades(res.data);
-    } catch (err) {
-      console.error('Error cargando autoridades:', err);
-    }
-  };
-
   if (!authReady) {
-    return <div style={{ padding: '2rem' }}>Cargando servicio de autenticación...</div>;
+    return <div style={{ padding: '2rem' }}>Conectando con Keycloak...</div>;
+  }
+
+  if (!keycloak.authenticated) {
+    return (
+      <div style={{ padding: '3rem', textAlign: 'center' }}>
+        <h2>Sistema de Indexación de Noticias de Orden Público</h2>
+        <p>Inicie sesión para acceder a las herramientas de análisis.</p>
+        <button 
+          onClick={() => keycloak.login()} 
+          style={{ padding: '0.8rem 1.5rem', fontSize: '1rem', cursor: 'pointer' }}
+        >
+          Iniciar Sesión
+        </button>
+      </div>
+    );
   }
 
   return (
-    <div style={{ padding: '2rem', fontFamily: 'sans-serif' }}>
-      <h1>Indexación de Noticias de Orden Público</h1>
+    <div style={{ background: '#eceff1', minHeight: '100vh', padding: '1rem' }}>
+      <header style={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center', 
+        background: '#263238', 
+        color: '#fff', 
+        padding: '0.8rem 1.5rem',
+        borderRadius: '6px',
+        marginBottom: '1.5rem'
+      }}>
+        <span><strong>Usuario:</strong> {userInfo?.username} ({userInfo?.roles.filter(r => !r.includes('default')).join(', ')})</span>
+        <button 
+          onClick={() => keycloak.logout()}
+          style={{ background: '#cfd8dc', border: 'none', padding: '0.4rem 0.8rem', borderRadius: '4px', cursor: 'pointer' }}
+        >
+          Cerrar Sesión
+        </button>
+      </header>
 
-      {!keycloak.authenticated ? (
-        <button onClick={() => keycloak.login()}>Iniciar Sesión con Keycloak</button>
-      ) : (
-        <div>
-          <div style={{ marginBottom: '1.5rem', background: '#f0f4f8', padding: '1rem', borderRadius: '6px' }}>
-            <p><strong>Usuario:</strong> {userInfo?.name}</p>
-            <p><strong>Roles:</strong> {userInfo?.roles.join(', ')}</p>
-            <button onClick={() => keycloak.logout()}>Cerrar Sesión</button>
-          </div>
-
-          <section style={{ marginTop: '2rem' }}>
-            <h2>Consultar Autoridades desde Fuseki</h2>
-            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
-              <select value={tipoFiltro} onChange={(e) => setTipoFiltro(e.target.value)}>
-                <option value="">-- Todos los tipos --</option>
-                <option value="Lugar">Lugar</option>
-                <option value="GrupoCriminal">Grupo Criminal</option>
-                <option value="Materia">Materia</option>
-                <option value="Organizacion">Organización</option>
-                <option value="Persona">Persona</option>
-              </select>
-              <button onClick={cargarAutoridades}>Consultar</button>
-            </div>
-
-            <ul>
-              {autoridades.map((item) => (
-                <li key={item.uri}>
-                  <strong>{item.prefLabel}</strong> ({item.tipo}) {item.altLabel && `[Alias: ${item.altLabel}]`}
-                </li>
-              ))}
-            </ul>
-          </section>
-        </div>
-      )}
+      <main>
+        <FormularioNoticia />
+      </main>
     </div>
   );
 }

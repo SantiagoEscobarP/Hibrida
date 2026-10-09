@@ -1,4 +1,5 @@
 import httpx
+from fastapi import HTTPException
 from core.config import settings
 
 class FusekiClient:
@@ -8,8 +9,7 @@ class FusekiClient:
         self.auth = (settings.FUSEKI_USER, settings.FUSEKI_PASSWORD)
 
     async def execute_query(self, sparql_query: str) -> dict:
-        """Ejecuta consultas SPARQL SELECT / ASK y retorna JSON estándar."""
-        async with httpx.AsyncClient(timeout=10.0) as client:
+        async with httpx.AsyncClient(timeout=15.0) as client:
             headers = {"Accept": "application/sparql-results+json"}
             response = await client.post(
                 self.query_url,
@@ -17,12 +17,13 @@ class FusekiClient:
                 headers=headers,
                 auth=self.auth
             )
-            response.raise_for_status()
+            if response.status_code != 200:
+                print("Error Fuseki Query:", response.text)
+                raise HTTPException(status_code=response.status_code, detail=f"Fuseki Query Error: {response.text}")
             return response.json()
 
     async def execute_update(self, sparql_update: str):
-        """Ejecuta operaciones SPARQL Update (INSERT DATA, DELETE DATA)."""
-        async with httpx.AsyncClient(timeout=10.0) as client:
+        async with httpx.AsyncClient(timeout=15.0) as client:
             headers = {"Content-Type": "application/sparql-update"}
             response = await client.post(
                 self.update_url,
@@ -30,7 +31,13 @@ class FusekiClient:
                 headers=headers,
                 auth=self.auth
             )
-            response.raise_for_status()
+            if response.status_code not in (200, 204):
+                # Imprimir el SPARQL enviado y la respuesta de Fuseki en la consola de Uvicorn
+                print("=== SPARQL QUE FALLÓ ===")
+                print(sparql_update)
+                print("=== RESPUESTA ERROR FUSEKI ===")
+                print(response.text)
+                raise HTTPException(status_code=400, detail=f"Fuseki SPARQL Error: {response.text}")
             return {"status": "success"}
 
 fuseki_client = FusekiClient()
