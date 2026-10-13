@@ -1,0 +1,5 @@
+Vista de Exploración y Búsqueda Semántica: Crear la pantalla en React para listar noticias indexadas, filtrar por materia o municipio y explorar el grafo de eventos y agentes relacionados mediante consultas SPARQL SELECT.
+
+Ingesta Automatizada (Bot de Scraping/RSS): Diseñar el servicio en Python que extraiga automáticamente noticias de fuentes web/RSS, pre-clasifique datos y los envíe al backend.
+
+Gestión Integral de Autoridades: Construir el módulo CRUD dedicado en React para editar autoridades, enriquecer sus relaciones jerárquicas (estaUbicadoEn, integranteDe) y vincular identificadores externos como Wikidata.

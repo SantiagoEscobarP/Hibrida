@@ -1,1 +1,48 @@
 apache-jena-fuseki-6.2.0/
+# Dependencias (NUNCA se suben, son muy pesadas)
+node_modules/
+/jspm_packages/
+
+# Carpetas de producción / compilación
+dist/
+build/
+.next/
+out/
+
+# Archivos de registro y logs de error
+   *.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Variables de entorno y secretos (Contienen llaves y contraseñas de API)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.env.json
+
+# Caché de herramientas de desarrollo, empaquetadores y pruebas
+.turbo/
+.cache/
+.parcel-cache/
+.eslintcache
+.stylelintcache
+.tsbuildinfo
+coverage/
+
+# Configuraciones de editores e IDEs (Opcional, evita conflictos entre desarrolladores)
+.vscode/
+!.vscode/extensions.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+
+# Archivos del sistema operativo
+.DS_Store
+Thumbs.db
