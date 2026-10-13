@@ -1,0 +1,158 @@
+/* ============================================
+   INDEXACIÓN DE TITULARES – ESTILO GENERAL
+   ============================================ */
+
+.page-container {
+  min-height: 100vh;
+  background: #f4f7f6;
+}
+
+.content-area {
+  padding: 40px 80px;
+}
+
+.page-header-title h2 {
+  font-size: 18px;
+  font-weight: 800;
+  margin-bottom: 25px;
+  color: #333;
+}
+
+/* CARD PRINCIPAL */
+.indexacion-card {
+  background: white;
+  padding: 30px 40px;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+}
+
+/* Secciones */
+.field-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.section-label {
+  font-weight: bold;
+  font-size: 13px;
+  color: #444;
+}
+
+/* TITULAR (Caja grande arriba) */
+.main-titular-input {
+  width: 100%;
+  min-height: 45px;
+  border: 1px solid #aaa;
+  padding: 10px;
+  border-radius: 6px;
+  font-size: 14px;
+  resize: none;
+}
+
+/* RESUMEN GRANDE */
+.main-resumen-input {
+  width: 100%;
+  min-height: 120px;
+  border: 1px solid #aaa;
+  padding: 10px;
+  border-radius: 6px;
+  font-size: 14px;
+  resize: none;
+}
+
+/* BARRA DE INFORMACIÓN */
+.info-row-bar {
+  display: flex;
+  gap: 25px;
+  flex-wrap: wrap;
+}
+
+.info-box {
+  background: #f7f7f7;
+  border: 1px solid #ddd;
+  padding: 10px 18px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #333;
+}
+
+/* EVENTOS */
+.eventos-section h3 {
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 15px;
+}
+
+/* TABLA EVENTOS */
+.eventos-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #f7fbfe;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid #d0d7de;
+}
+
+.eventos-table th {
+  background: #eef4f8;
+  padding: 12px;
+  font-size: 12px;
+  font-weight: bold;
+  text-align: left;
+  border-bottom: 1px solid #d0d7de;
+}
+
+.eventos-table td {
+  padding: 12px;
+  font-size: 13px;
+  border-bottom: 1px solid #e4e9ed;
+}
+
+.eventos-table textarea {
+  width: 100%;
+  height: 50px;
+  resize: none;
+  border: 1px solid #ccc;
+  padding: 6px;
+  border-radius: 5px;
+  background: white;
+}
+
+/* TAGS EN TABLA */
+.tag {
+  background: #ffffff;
+  border: 1px solid #333;
+  padding: 6px 10px;
+  border-radius: 5px;
+  display: inline-block;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+/* BOTONES INFERIORES */
+.action-buttons-end {
+  display: flex;
+  justify-content: flex-end;
+  gap: 15px;
+  margin-top: 20px;
+}
+
+.btn-secondary {
+  background: #fff;
+  border: 1px solid #333;
+  padding: 10px 22px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 13px;
+  transition: 0.3s ease;
+}
+
+.btn-secondary:hover {
+  background: #f0f0f0;
+}

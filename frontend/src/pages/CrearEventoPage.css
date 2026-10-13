@@ -1,0 +1,260 @@
+/* Estilos unificados para CrearEventoPage.css y AutoridadesPage.css */
+.catalogacion-header {
+  margin-bottom: 22px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.catalogacion-header label {
+  font-weight: 700;
+  font-size: 13px;
+  color: #475569;
+}
+
+.select-catalogacion {
+  padding: 8px 14px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 10px;
+  font-size: 13px;
+  background-color: #ffffff;
+  color: #0d1b2a;
+  font-weight: 600;
+}
+
+.accordion-form-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.accordion-section {
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
+  background: #ffffff;
+  box-shadow: 0 4px 16px rgba(13, 27, 42, 0.03);
+  overflow: hidden;
+}
+
+.accordion-header {
+  background-color: #f8fafc;
+  color: #0d1b2a;
+  padding: 14px 20px;
+  font-weight: 800;
+  font-size: 14px;
+  cursor: pointer;
+  user-select: none;
+  border-bottom: 1px solid #e2e8f0;
+  transition: background-color 0.2s ease;
+}
+
+.accordion-header:hover {
+  background-color: #eff6ff;
+  color: #006fee;
+}
+
+.accordion-body {
+  padding: 22px 24px;
+  background-color: #ffffff;
+}
+
+.sub-title {
+  font-size: 14px;
+  font-weight: 800;
+  color: #0d1b2a;
+  margin-bottom: 12px;
+}
+
+.req {
+  color: #f31260;
+  margin-left: 3px;
+}
+
+.field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #475569;
+}
+
+.input-textarea-small,
+.form-control {
+  width: 100%;
+  min-height: 40px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-size: 13px;
+  resize: vertical;
+  background-color: #ffffff;
+  color: #0d1b2a;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.input-textarea-large {
+  width: 100%;
+  min-height: 85px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-size: 13px;
+  resize: vertical;
+  background-color: #ffffff;
+  color: #0d1b2a;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.input-textarea-small:focus,
+.input-textarea-large:focus,
+.select-full-styled:focus,
+.form-control:focus {
+  border-color: #006fee;
+  box-shadow: 0 0 0 3px rgba(0, 111, 238, 0.12);
+}
+
+.select-full-styled {
+  width: 100%;
+  height: 40px;
+  padding: 0 12px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 10px;
+  font-size: 13px;
+  background: #ffffff;
+  color: #0d1b2a;
+  outline: none;
+}
+
+.btn-gray-action {
+  background-color: #f1f5f9;
+  color: #334155;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  padding: 7px 14px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  align-self: flex-start;
+  margin-top: 6px;
+  transition: all 0.2s ease;
+}
+
+.btn-gray-action:hover {
+  background-color: #e6f1fe;
+  border-color: #006fee;
+  color: #006fee;
+}
+
+.button-group-row,
+.form-row {
+  display: flex;
+  gap: 10px;
+  margin-top: 8px;
+  align-items: center;
+}
+
+.ref-container {
+  margin-top: 8px;
+}
+
+.ref-tag {
+  font-size: 11px;
+  color: #006fee;
+  font-weight: 700;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.ref-box {
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+}
+
+.ref-box input {
+  width: 100%;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 12px;
+}
+
+.agente-card {
+  border-bottom: 1px dashed #cbd5e1;
+  padding-bottom: 16px;
+  margin-bottom: 16px;
+}
+
+.agente-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  gap: 14px;
+  align-items: start;
+}
+
+.agente-grid.with-nota,
+.agente-grid-vic {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr 1fr;
+  gap: 14px;
+  align-items: start;
+}
+
+.agente-grid-vic.with-nota {
+  grid-template-columns: 2fr 1fr 1fr 1fr 1fr 1fr;
+}
+
+.two-col-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.three-col-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 16px;
+}
+
+.notas-grid {
+  display: grid;
+  grid-template-columns: 1fr 2fr auto;
+  gap: 16px;
+  align-items: center;
+}
+
+.checkbox-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.custom-checkbox {
+  width: 18px;
+  height: 18px;
+  accent-color: #006fee;
+  cursor: pointer;
+}
+
+.margin-top { margin-top: 18px; }
+.margin-top-small { margin-top: 10px; }
+.margin-bottom-small { margin-bottom: 12px; }
+
+.footer-action-area {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 20px;
+}

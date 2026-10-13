@@ -1,0 +1,74 @@
+/* ── Layout Autoridades-style para BuscarEvento ── */
+.buscar-grid {
+  grid-template-columns: 1fr 2fr 1.2fr 1.2fr 0.6fr !important;
+}
+
+.buscar-col-headers {
+  background: #f0f4f8;
+  font-weight: 700;
+  font-size: 11px;
+  color: #444;
+  letter-spacing: 0.05em;
+  padding: 6px 0;
+}
+
+.col-header-label {
+  padding: 6px 10px;
+  text-align: left;
+}
+
+.buscar-data-row {
+  grid-template-columns: 1fr 2fr 1.2fr 1.2fr 0.6fr !important;
+}
+
+.btn-holding {
+  padding: 5px 10px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: bold;
+  cursor: pointer;
+  border: 1px solid #6a5acd;
+  color: #6a5acd;
+  background: white;
+  transition: 0.2s;
+}
+
+.btn-holding:hover {
+  background: #f5f3ff;
+}
+
+/* ── Estilos legacy (compatibilidad) ── */
+.estado-cell {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-estado {
+  padding: 5px 12px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: bold;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: 0.2s;
+}
+
+.btn-estado.reg {
+  border-color: #38a169;
+  color: #38a169;
+  background: white;
+}
+
+.btn-estado.reg:hover {
+  background: #f0fff4;
+}
+
+.btn-estado.holding {
+  border-color: #6a5acd;
+  color: #6a5acd;
+  background: white;
+}
+
+.btn-estado.holding:hover {
+  background: #f5f3ff;
+}

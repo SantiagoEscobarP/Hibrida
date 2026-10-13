@@ -1,66 +1,152 @@
-import { useState, useEffect } from 'react';
-import keycloak, { initKeycloak } from './services/keycloak';
-import FormularioNoticia from './components/FormularioNoticia';
+// src/App.jsx
+import React, { useMemo, useState } from "react";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import LoginPage from "./pages/LoginPage";
+import AdminPage from "./pages/AdminPage";
+import HomePage from "./pages/HomePage";
+import MateriasPage from "./pages/MateriasPage";
+import TitularesPage from "./pages/TitularesPage";
+import IndexacionPage from "./pages/IndexacionPage";
+import CrearEventoPage from "./pages/CrearEventoPage";
+import BuscarEventoPage from "./pages/BuscarEventoPage";
+import AutoridadesPage from "./pages/AutoridadesPage";
+import ListadoAutoridadesPage from "./pages/ListadoAutoridadesPage";
+import BuscadorPage from "./pages/BuscadorPage";
 
-export default function App() {
-  const [authReady, setAuthReady] = useState(false);
-  const [userInfo, setUserInfo] = useState(null);
+function App() {
+  const [usuario, setUsuario] = useState(() => {
+    try {
+      const stored = localStorage.getItem("pressindex_user");
+      return stored ? JSON.parse(stored) : null;
+    } catch {
+      localStorage.removeItem("pressindex_user");
+      return null;
+    }
+  });
 
-  useEffect(() => {
-    initKeycloak((authenticated) => {
-      setAuthReady(true);
-      if (authenticated) {
-        setUserInfo({
-          username: keycloak.tokenParsed?.preferred_username,
-          roles: keycloak.tokenParsed?.realm_access?.roles || [],
-        });
-      }
-    });
-  }, []);
+  const loggedIn = !!usuario;
+  const rol = usuario ? (usuario.rol || "").toString().trim().toLowerCase() : "";
+  const permisoCrearEventos = !!usuario?.permiso_crear_eventos;
 
-  if (!authReady) {
-    return <div style={{ padding: '2rem' }}>Conectando con Keycloak...</div>;
-  }
+  const esAdministrador = rol === "administrador" || rol === "analista" || rol === "admin";
+  const esSuperusuario = rol === "superusuario";
+  const esIndexador = rol === "indexador";
 
-  if (!keycloak.authenticated) {
-    return (
-      <div style={{ padding: '3rem', textAlign: 'center' }}>
-        <h2>Sistema de Indexación de Noticias de Orden Público</h2>
-        <p>Inicie sesión para acceder a las herramientas de análisis.</p>
-        <button 
-          onClick={() => keycloak.login()} 
-          style={{ padding: '0.8rem 1.5rem', fontSize: '1rem', cursor: 'pointer' }}
-        >
-          Iniciar Sesión
-        </button>
-      </div>
-    );
-  }
+  const normalizeUser = (data) => ({
+    ...data,
+    permiso_crear_eventos: Boolean(data?.permiso_crear_eventos ?? true),
+  });
+
+  const handleLogin = (datosUsuario) => {
+    const normalized = normalizeUser(datosUsuario);
+    setUsuario(normalized);
+    localStorage.setItem("pressindex_user", JSON.stringify(normalized));
+  };
+
+  const handleLogout = () => {
+    setUsuario(null);
+    localStorage.removeItem("pressindex_user");
+    localStorage.removeItem("pressindex_token");
+  };
+
+  const destinoAutenticado = "/inicio";
+  const puedeAccederAdmin = loggedIn && esAdministrador;
+  const puedeAccederModuloOperativo = loggedIn && (esAdministrador || esSuperusuario || esIndexador);
+  const puedeAccederMaterias = loggedIn && (esAdministrador || esSuperusuario || esIndexador);
+  const puedeAccederBuscarEvento = loggedIn && (esAdministrador || esSuperusuario || esIndexador);
+  const puedeAccederEditarEvento = loggedIn && (esAdministrador || esSuperusuario);
+  const puedeAccederAutoridades = loggedIn && (esAdministrador || esSuperusuario || esIndexador);
+  const puedeEditarAutoridades = loggedIn && (esAdministrador || esSuperusuario);
+  const puedeCrearEvento = loggedIn && (esAdministrador || esSuperusuario || (esIndexador && permisoCrearEventos));
+
+  const destinoDenegado = useMemo(() => (loggedIn ? "/inicio" : "/login"), [loggedIn]);
+  const proteger = (permiso, element) => (permiso ? element : <Navigate to={destinoDenegado} replace />);
 
   return (
-    <div style={{ background: '#eceff1', minHeight: '100vh', padding: '1rem' }}>
-      <header style={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'center', 
-        background: '#263238', 
-        color: '#fff', 
-        padding: '0.8rem 1.5rem',
-        borderRadius: '6px',
-        marginBottom: '1.5rem'
-      }}>
-        <span><strong>Usuario:</strong> {userInfo?.username} ({userInfo?.roles.filter(r => !r.includes('default')).join(', ')})</span>
-        <button 
-          onClick={() => keycloak.logout()}
-          style={{ background: '#cfd8dc', border: 'none', padding: '0.4rem 0.8rem', borderRadius: '4px', cursor: 'pointer' }}
-        >
-          Cerrar Sesión
-        </button>
-      </header>
-
-      <main>
-        <FormularioNoticia />
-      </main>
-    </div>
+    <Router>
+      <Routes>
+        <Route
+          path="/"
+          element={loggedIn ? <Navigate to={destinoAutenticado} replace /> : <Navigate to="/login" replace />}
+        />
+        <Route
+          path="/login"
+          element={loggedIn ? <Navigate to={destinoAutenticado} replace /> : <LoginPage onLogin={handleLogin} />}
+        />
+        <Route path="/LoginIndexador" element={<Navigate to="/login" replace />} />
+        <Route path="/LoginSuperusuario" element={<Navigate to="/login" replace />} />
+        <Route
+          path="/admin"
+          element={proteger(puedeAccederAdmin, <AdminPage onLogout={handleLogout} usuario={usuario} />)}
+        />
+        <Route
+          path="/inicio"
+          element={proteger(puedeAccederModuloOperativo, <HomePage onLogout={handleLogout} usuario={usuario} />)}
+        />
+        <Route
+          path="/materias"
+          element={proteger(puedeAccederMaterias, <MateriasPage onLogout={handleLogout} usuario={usuario} />)}
+        />
+        <Route
+          path="/titulares"
+          element={proteger(puedeAccederModuloOperativo, <TitularesPage onLogout={handleLogout} usuario={usuario} />)}
+        />
+        <Route
+          path="/indexacion/:id"
+          element={proteger(puedeAccederModuloOperativo, <IndexacionPage usuario={usuario} />)}
+        />
+        <Route
+          path="/buscador"
+          element={proteger(puedeAccederModuloOperativo, <BuscadorPage usuario={usuario} />)}
+        />
+        <Route
+          path="/graficas"
+          element={proteger(puedeAccederModuloOperativo, <BuscadorPage usuario={usuario} />)}
+        />
+        <Route
+          path="/buscar-evento"
+          element={proteger(puedeAccederBuscarEvento, <BuscarEventoPage usuario={usuario} />)}
+        />
+        <Route
+          path="/crear-evento"
+          element={proteger(puedeCrearEvento, <CrearEventoPage usuario={usuario} />)}
+        />
+        <Route
+          path="/crear-evento/:id"
+          element={proteger(puedeCrearEvento, <CrearEventoPage usuario={usuario} />)}
+        />
+        <Route
+          path="/editar-evento/:id"
+          element={proteger(puedeAccederEditarEvento, <CrearEventoPage usuario={usuario} />)}
+        />
+        <Route
+          path="/Autoridades"
+          element={proteger(puedeAccederAutoridades, <ListadoAutoridadesPage usuario={usuario} />)}
+        />
+        <Route
+          path="/autoridades"
+          element={proteger(puedeAccederAutoridades, <ListadoAutoridadesPage usuario={usuario} />)}
+        />
+        <Route
+          path="/Autoridades/crear"
+          element={proteger(puedeEditarAutoridades, <AutoridadesPage usuario={usuario} />)}
+        />
+        <Route
+          path="/autoridades/crear"
+          element={proteger(puedeEditarAutoridades, <AutoridadesPage usuario={usuario} />)}
+        />
+        <Route
+          path="/Autoridades/editar/:id"
+          element={proteger(puedeEditarAutoridades, <AutoridadesPage usuario={usuario} />)}
+        />
+        <Route
+          path="/autoridades/editar/:id"
+          element={proteger(puedeEditarAutoridades, <AutoridadesPage usuario={usuario} />)}
+        />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </Router>
   );
 }
+
+export default App;

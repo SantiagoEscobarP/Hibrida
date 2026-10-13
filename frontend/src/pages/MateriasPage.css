@@ -1,0 +1,148 @@
+/* src/pages/TitularesPage.css y MateriasPage.css */
+.filters-bar {
+  background: #ffffff;
+  padding: 22px 26px;
+  border-radius: 20px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 6px 20px rgba(13, 27, 42, 0.04);
+  margin-bottom: 24px;
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  align-items: flex-end;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  min-width: 150px;
+}
+
+.filter-group label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #475569;
+}
+
+.filter-group input,
+.filter-group select {
+  height: 40px;
+  padding: 0 12px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 12px;
+  font-size: 13px;
+  color: #0d1b2a;
+  background: #ffffff;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.filter-group input:focus,
+.filter-group select:focus {
+  border-color: #006fee;
+  box-shadow: 0 0 0 3px rgba(0, 111, 238, 0.12);
+}
+
+.table-container {
+  background: #ffffff;
+  border-radius: 20px;
+  border: 1px solid #e2e8f0;
+  overflow: hidden;
+  box-shadow: 0 6px 20px rgba(13, 27, 42, 0.04);
+  margin-bottom: 24px;
+  padding: 0;
+}
+
+.custom-table,
+.titulares-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.custom-table th,
+.titulares-table th {
+  background: #f8fafc;
+  padding: 16px 18px;
+  text-align: left;
+  font-size: 12px;
+  font-weight: 800;
+  color: #64748b;
+  letter-spacing: 0.5px;
+  border-bottom: 1.5px solid #e2e8f0;
+}
+
+.custom-table td,
+.titulares-table td {
+  padding: 14px 18px;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: 13px;
+  vertical-align: middle;
+}
+
+.custom-table tbody tr:hover,
+.titulares-table tbody tr:hover {
+  background-color: #f8fafc;
+}
+
+.table-textarea,
+.table-textarea-small {
+  width: 100%;
+  min-height: 52px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 8px 10px;
+  font-size: 13px;
+  color: #0d1b2a;
+  resize: vertical;
+  background: #fcfcfd;
+}
+
+.table-input,
+.table-input-small {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  font-size: 13px;
+  color: #0d1b2a;
+  background: #fcfcfd;
+}
+
+.num-btn,
+.btn-estado {
+  padding: 7px 14px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s ease;
+}
+
+.num-btn.pend,
+.btn-estado.pend {
+  background: #fee7e6;
+  color: #f31260;
+}
+
+.num-btn.pend:hover,
+.btn-estado.pend:hover {
+  background: #f31260;
+  color: #ffffff;
+}
+
+.num-btn.ok,
+.btn-estado.ok,
+.btn-estado.reg {
+  background: #e8faf0;
+  color: #17c964;
+}
+
+.num-btn.ok:hover,
+.btn-estado.ok:hover,
+.btn-estado.reg:hover {
+  background: #17c964;
+  color: #ffffff;
+}

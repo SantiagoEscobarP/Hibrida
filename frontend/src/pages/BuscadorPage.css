@@ -1,0 +1,155 @@
+/* src/pages/BuscadorPage.css */
+.grafo-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin: 12px 0 18px;
+  padding: 10px 14px;
+  background: #f4f6f8;
+  border: 1px solid #dde3e8;
+  border-radius: 6px;
+}
+
+.grafo-total {
+  font-weight: 700;
+  color: #1f2d3d;
+  margin-right: 8px;
+}
+
+.stat-chip {
+  font-size: 12px;
+  padding: 3px 9px;
+  border-radius: 12px;
+  background: #e3ecf5;
+  color: #24425f;
+}
+
+.stat-chip.stat-empty {
+  background: #f6e3e3;
+  color: #8a3b3b;
+}
+
+.buscador-bar {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.buscador-input {
+  flex: 1;
+  padding: 10px 12px;
+  border: 1px solid #c8d2da;
+  border-radius: 5px;
+  font-size: 14px;
+}
+
+.buscador-select {
+  padding: 10px 12px;
+  border: 1px solid #c8d2da;
+  border-radius: 5px;
+  background: #fff;
+  font-size: 14px;
+}
+
+.buscador-hint {
+  color: #6b7a88;
+  font-size: 13px;
+  margin: 8px 0;
+}
+
+.buscador-layout {
+  display: grid;
+  grid-template-columns: 1fr 1.4fr;
+  gap: 18px;
+  align-items: start;
+}
+
+.buscador-resultados {
+  max-height: 60vh;
+  overflow-y: auto;
+  border: 1px solid #dde3e8;
+  border-radius: 6px;
+  background: #fff;
+}
+
+.resultado-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border-bottom: 1px solid #eef2f5;
+  cursor: pointer;
+}
+
+.resultado-item:hover {
+  background: #f4f8fb;
+}
+
+.resultado-activo {
+  background: #e3ecf5;
+}
+
+.resultado-tipo {
+  font-size: 11px;
+  text-transform: uppercase;
+  color: #5a6b7b;
+  white-space: nowrap;
+}
+
+.resultado-nombre {
+  font-weight: 600;
+  color: #1f2d3d;
+  text-align: right;
+}
+
+.buscador-detalle {
+  border: 1px solid #dde3e8;
+  border-radius: 6px;
+  background: #fff;
+  padding: 16px;
+  min-height: 200px;
+}
+
+.buscador-detalle h3 {
+  margin: 0 0 4px;
+  color: #1f2d3d;
+}
+
+.buscador-detalle h4 {
+  margin: 16px 0 6px;
+  color: #24425f;
+  font-size: 13px;
+  text-transform: uppercase;
+}
+
+.detalle-uri {
+  font-size: 11px;
+  color: #8a97a3;
+  word-break: break-all;
+  margin: 0 0 8px;
+}
+
+.detalle-tabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.detalle-tabla td {
+  padding: 5px 8px;
+  border-bottom: 1px solid #eef2f5;
+  vertical-align: top;
+}
+
+.detalle-pred {
+  color: #5a6b7b;
+  white-space: nowrap;
+  width: 40%;
+}
+
+.detalle-enlace {
+  color: #1a6fb5;
+  cursor: pointer;
+  text-decoration: underline;
+}
