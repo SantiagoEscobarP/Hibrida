@@ -4,9 +4,12 @@ import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import "./ListadoAutoridadesPage.css";
 
+const API_BASE = "http://localhost:8000/api";
+
 function ListadoAutoridadesPage({ usuario }) {
   const navigate = useNavigate();
   const [autoridades, setAutoridades] = useState([]);
+  const [cargando, setCargando] = useState(true);
 
   const usuarioSesion = useMemo(() => {
     if (usuario) return usuario;
@@ -18,34 +21,33 @@ function ListadoAutoridadesPage({ usuario }) {
     }
   }, [usuario]);
 
-  const rol = (usuarioSesion?.rol || "").toString().trim().toLowerCase();
-  const puedeEditarAutoridades = rol === "administrador" || rol === "superusuario";
+  const rol = (usuarioSesion?.rol || "administrador").toString().trim().toLowerCase();
+  const puedeEditarAutoridades =
+    rol === "administrador" || rol === "superusuario" || rol === "analista" || rol === "admin";
 
   useEffect(() => {
-    Promise.all([
-      fetch("http://localhost:5000/api/agentes").then((res) => res.json()),
-      fetch("http://localhost:5000/api/estructuras-criminales").then((res) => res.json()),
-      fetch("http://localhost:5000/api/categorias").then((res) => res.json()),
-      fetch("http://localhost:5000/api/lugares").then((res) => res.json()),
-    ])
-      .then(([agentesData, estructurasData, categoriasData, lugaresData]) => {
-        const combinadas = [
-          ...(Array.isArray(agentesData)
-            ? agentesData.map((a) => ({ id: a.id || a._id, tipo: a.tipo_nombre || "Agente", termino: a.nombre, fecha_creacion: a.fecha_creacion || a.fechaCreacion || a.fecha }))
-            : []),
-          ...(Array.isArray(estructurasData)
-            ? estructurasData.map((e) => ({ id: e.id || e._id, tipo: "Grupo Criminal", termino: e.nombre, fecha_creacion: e.fecha_creacion }))
-            : []),
-          ...(Array.isArray(categoriasData)
-            ? categoriasData.map((c) => ({ id: c.id || c._id, tipo: "Materia", termino: c.nombre, fecha_creacion: c.fecha_creacion }))
-            : []),
-          ...(Array.isArray(lugaresData)
-            ? lugaresData.map((l) => ({ id: l.id || l._id, tipo: l.tipo_lugar || "Lugar", termino: l.nombre, fecha_creacion: l.fecha_creacion }))
-            : []),
-        ];
-        setAutoridades(combinadas);
+    setCargando(true);
+    fetch(`${API_BASE}/autoridades`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data)) {
+          setAutoridades(
+            data.map((item) => ({
+              id: item.id || item._id || item.uri.split("/").pop(),
+              uri: item.uri,
+              tipo: item.tipo || item.tipo_nombre || "Autoridad",
+              termino: item.termino || item.prefLabel || item.nombre || "",
+              fecha_creacion: item.fecha_creacion,
+              fecha_actualizacion: item.fecha_actualizacion || item.fecha_creacion,
+            }))
+          );
+        }
+        setCargando(false);
       })
-      .catch((error) => console.error("Error al traer autoridades:", error));
+      .catch((error) => {
+        console.error("Error al traer autoridades desde Fuseki:", error);
+        setCargando(false);
+      });
   }, []);
 
   const [filtroTipo, setFiltroTipo] = useState("");
@@ -54,8 +56,12 @@ function ListadoAutoridadesPage({ usuario }) {
   const [filtroActualizacion, setFiltroActualizacion] = useState("");
 
   const autoridadesFiltradas = autoridades.filter((item) => {
-    const fechaCreacionText = item.fecha_creacion ? new Date(item.fecha_creacion).toLocaleDateString("es-CO") : "";
-    const fechaActualizacionText = fechaCreacionText;
+    const fechaCreacionText = item.fecha_creacion
+      ? new Date(item.fecha_creacion).toLocaleDateString("es-CO")
+      : "";
+    const fechaActualizacionText = item.fecha_actualizacion
+      ? new Date(item.fecha_actualizacion).toLocaleDateString("es-CO")
+      : fechaCreacionText;
 
     return (
       (filtroTipo === "" || (item.tipo || "").toLowerCase().includes(filtroTipo.toLowerCase())) &&
@@ -67,7 +73,7 @@ function ListadoAutoridadesPage({ usuario }) {
 
   return (
     <div className="page-container">
-      <Navbar usuario={usuarioSesion} onLogout={() => navigate("/")} />
+      <Navbar usuario={usuarioSesion} onLogout={() => navigate("/login")} />
 
       <div className="content-area">
         <header className="page-header-title">
@@ -89,19 +95,34 @@ function ListadoAutoridadesPage({ usuario }) {
         <div className="autoridades-table-container">
           <div className="table-header-grid">
             <div className="filter-field">
-              <span className="filter-icon">⚙</span>
-              <input type="text" placeholder="Tipo de término" value={filtroTipo} onChange={(e) => setFiltroTipo(e.target.value)} />
+              <span className="filter-icon">🔍</span>
+              <input
+                type="text"
+                placeholder="Tipo de término (Persona, Lugar, Materia...)"
+                value={filtroTipo}
+                onChange={(e) => setFiltroTipo(e.target.value)}
+              />
             </div>
             <div className="filter-field">
-              <span className="filter-icon">⚙</span>
-              <input type="text" placeholder="Término autorizado" value={filtroTermino} onChange={(e) => setFiltroTermino(e.target.value)} />
+              <span className="filter-icon">🔍</span>
+              <input
+                type="text"
+                placeholder="Término autorizado"
+                value={filtroTermino}
+                onChange={(e) => setFiltroTermino(e.target.value)}
+              />
             </div>
             <div className="filter-field">
-              <span className="filter-icon">⚙</span>
-              <input type="text" placeholder="Fecha de creación" value={filtroCreacion} onChange={(e) => setFiltroCreacion(e.target.value)} />
+              <span className="filter-icon">📅</span>
+              <input
+                type="text"
+                placeholder="Fecha de creación"
+                value={filtroCreacion}
+                onChange={(e) => setFiltroCreacion(e.target.value)}
+              />
             </div>
             <div className="filter-field">
-              <span className="filter-icon">⚙</span>
+              <span className="filter-icon">📅</span>
               <input
                 type="text"
                 placeholder="Fecha de actualización"
@@ -113,33 +134,54 @@ function ListadoAutoridadesPage({ usuario }) {
           </div>
 
           <div className="table-body-rows">
-            {autoridadesFiltradas.map((item) => (
-              <div key={item.id} className="table-data-row">
-                <div className="cell-box">{item.tipo}</div>
-                <div className="cell-box font-bold">{item.termino}</div>
-                <div className="cell-box date-box">
-                  <span>{item.fecha_creacion ? new Date(item.fecha_creacion).toLocaleDateString("es-CO") : "N/A"}</span>
-                  <span className="calendar-icon">📅</span>
-                </div>
-                <div className="cell-box date-box">
-                  <span>{item.fecha_creacion ? new Date(item.fecha_creacion).toLocaleDateString("es-CO") : "N/A"}</span>
-                  <span className="calendar-icon">📅</span>
-                </div>
-                <div className="cell-action">
-                  {puedeEditarAutoridades ? (
-                    <button className="btn-reg" onClick={() => navigate(`/autoridades/editar/${item.id}`)} title="Ver/Editar registro">
-                      REG
-                    </button>
-                  ) : (
-                    <button className="btn-reg" disabled title="Solo lectura para indexador">
-                      SOLO LECTURA
-                    </button>
-                  )}
-                </div>
+            {cargando ? (
+              <div style={{ textAlign: "center", padding: "30px", color: "#64748b" }}>
+                Cargando autoridades desde Apache Jena Fuseki...
               </div>
-            ))}
+            ) : autoridadesFiltradas.length === 0 ? (
+              <div style={{ textAlign: "center", padding: "30px", color: "#64748b" }}>
+                No se encontraron autoridades con los filtros aplicados.
+              </div>
+            ) : (
+              autoridadesFiltradas.map((item) => (
+                <div key={item.id} className="table-data-row">
+                  <div className="cell-box">{item.tipo}</div>
+                  <div className="cell-box font-bold">{item.termino}</div>
+                  <div className="cell-box date-box">
+                    <span>
+                      {item.fecha_creacion
+                        ? new Date(item.fecha_creacion).toLocaleDateString("es-CO")
+                        : "N/A"}
+                    </span>
+                    <span className="calendar-icon">🗓️</span>
+                  </div>
+                  <div className="cell-box date-box">
+                    <span>
+                      {item.fecha_actualizacion
+                        ? new Date(item.fecha_actualizacion).toLocaleDateString("es-CO")
+                        : "N/A"}
+                    </span>
+                    <span className="calendar-icon">🗓️</span>
+                  </div>
+                  <div className="cell-action">
+                    {puedeEditarAutoridades ? (
+                      <button
+                        className="btn-reg"
+                        onClick={() => navigate(`/autoridades/editar/${item.id}`)}
+                        title="Ver/Editar registro"
+                      >
+                        REG
+                      </button>
+                    ) : (
+                      <button className="btn-reg" disabled title="Solo lectura">
+                        VER
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))
+            )}
           </div>
-
         </div>
       </div>
     </div>

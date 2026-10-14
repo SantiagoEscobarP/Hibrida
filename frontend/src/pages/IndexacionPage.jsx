@@ -1,8 +1,10 @@
-// src/pages/IndexacionPage.js
+// src/pages/IndexacionPage.jsx
 import React, { useMemo, useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import "./IndexacionPage.css";
+
+const API_BASE = "http://localhost:8000/api";
 
 function IndexacionPage({ usuario }) {
   const { id } = useParams();
@@ -20,104 +22,137 @@ function IndexacionPage({ usuario }) {
     }
   }, [usuario]);
 
-  const rolUsuario = (usuarioSesion?.rol || "").toString().trim().toLowerCase();
+  const rolUsuario = (usuarioSesion?.rol || "administrador").toString().trim().toLowerCase();
   const esIndexador = rolUsuario === "indexador";
   const puedeCrearEventos = !esIndexador || !!usuarioSesion?.permiso_crear_eventos;
-  const puedeBuscarEvento = rolUsuario === "administrador" || rolUsuario === "superusuario" || rolUsuario === "indexador";
+  const puedeBuscarEvento = true;
 
   useEffect(() => {
-    fetch(`http://localhost:5000/api/titulares/${id}`)
-      .then((response) => response.json())
-      .then((data) => setTitular(data))
-      .catch((error) => console.error("Error al obtener el titular:", error));
-  }, [id]);
+    fetch(`${API_BASE}/noticias/${id}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data) setTitular(data);
+      })
+      .catch((err) => console.error("Error al obtener el titular:", err));
 
-  useEffect(() => {
-    fetch(`http://localhost:5000/api/eventos/por-titular/${id}`)
-      .then((response) => response.json())
-      .then((data) => setEventos(data))
-      .catch((error) => console.error("Error al obtener eventos:", error));
+    fetch(`${API_BASE}/eventos/por-titular/${id}`)
+      .then((res) => res.json())
+      .then((data) => setEventos(Array.isArray(data) ? data : []))
+      .catch((err) => console.error("Error al obtener eventos:", err));
   }, [id]);
 
   return (
     <div className="page-container">
-      <Navbar username={usuarioSesion?.nombre || "Usuario"} usuario={usuarioSesion} onLogout={() => navigate("/")} />
+      <Navbar
+        username={usuarioSesion?.nombre || "Usuario"}
+        usuario={usuarioSesion}
+        onLogout={() => navigate("/login")}
+      />
 
       <div className="content-area">
         <header className="page-header-title">
-          <h2>INDEXACIÓN TITULARES (REVISIÓN TITULAR-HOLDING)</h2>
+          <h2>INDEXACIÓN DE TITULARES (REVISIÓN TITULAR - EVENTOS)</h2>
         </header>
 
         <div className="indexacion-card">
           <div className="field-section">
             <label className="section-label">TITULAR</label>
-            <textarea className="main-titular-input" value={titular?.encabezado || "Cargando..."} onChange={() => {}} />
+            <textarea
+              className="main-titular-input"
+              value={titular?.encabezado || "Cargando..."}
+              readOnly
+            />
           </div>
 
           <div className="field-section">
+            <label className="section-label">CUERPO / RESUMEN</label>
             <textarea
               className="main-resumen-input"
               value={titular?.resumen || "Sin resumen disponible"}
-              onChange={() => {}}
+              readOnly
             />
           </div>
 
           <div className="info-row-bar">
             <div className="info-box">
-              Última Actualización: {titular?.fecha_creacion ? new Date(titular.fecha_creacion).toLocaleDateString("es-CO") : "N/A"}
+              Última Actualización:{" "}
+              {titular?.fecha_creacion
+                ? new Date(titular.fecha_creacion).toLocaleDateString("es-CO")
+                : "N/A"}
             </div>
             <div className="info-box">
-              FUENTE: {titular?.url_fuente && <a href={titular.url_fuente} target="_blank" rel="noopener noreferrer">Ver artículo</a>}
+              FUENTE: <strong>{titular?.fuente || titular?.url_fuente || "N/A"}</strong>
             </div>
             <div className="info-box">
-              FECHA PUBLICACIÓN: {titular?.fecha_publicacion ? new Date(titular.fecha_publicacion).toLocaleDateString("es-CO") : "N/A"}
+              FECHA PUBLICACIÓN:{" "}
+              {titular?.fecha_publicacion
+                ? new Date(titular.fecha_publicacion).toLocaleDateString("es-CO")
+                : "N/A"}
             </div>
           </div>
 
           <div className="eventos-section">
-            <h3>EVENTOS ({eventos.length})</h3>
+            <h3>EVENTOS VINCULADOS ({eventos.length})</h3>
 
             <table className="eventos-table">
               <thead>
                 <tr>
                   <th>FECHA</th>
-                  <th>RESUMEN</th>
-                  <th>MATERIAS / CATEGORÍAS</th>
-                  <th>MUNICIPIO / DEPARTAMENTO</th>
+                  <th>RESUMEN DEL EVENTO</th>
+                  <th>MATERIA / ESTADO</th>
+                  <th>MUNICIPIO / LUGAR</th>
                 </tr>
               </thead>
               <tbody>
-                {eventos.map((ev) => (
-                  <tr key={ev.id || ev._id}>
-                    <td>{(ev.fecha || ev.fecha_creacion) ? new Date(ev.fecha || ev.fecha_creacion).toLocaleDateString("es-CO") : "N/A"}</td>
-                    <td><textarea defaultValue={ev.resumen || ev.resumen_evento || ""} /></td>
-                    <td><div className="tag">{ev.estado}</div></td>
-                    <td><div className="tag">{ev.municipio || ev.direccion_hecho?.localidad || ev.subdivision || "N/A"}</div></td>
+                {eventos.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} style={{ textAlign: "center", padding: "24px", color: "#64748b" }}>
+                      Este titular aún no tiene eventos catalogados (Estado: PEND). Haz clic en "CREAR EVENTO" para indexarlo.
+                    </td>
                   </tr>
-                ))}
+                ) : (
+                  eventos.map((ev) => (
+                    <tr key={ev.id || ev._id}>
+                      <td>
+                        {ev.fecha || ev.fecha_creacion
+                          ? new Date(ev.fecha || ev.fecha_creacion).toLocaleDateString("es-CO")
+                          : "N/A"}
+                      </td>
+                      <td>
+                        <textarea defaultValue={ev.resumen || ev.resumen_evento || ""} readOnly />
+                      </td>
+                      <td>
+                        <div className="tag">{ev.estado || "REG"}</div>
+                      </td>
+                      <td>
+                        <div className="tag">
+                          {ev.municipio || ev.direccion_hecho?.localidad || "Bogotá D.C."}
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
 
           <div className="action-buttons-end">
-            {puedeCrearEventos ? (
-              <button
-                className="btn-secondary"
-                onClick={() => {
-                  navigate(`/crear-evento/${id}`);
-                }}
-              >
-                CREAR EVENTO
-              </button>
-            ) : (
-              <button className="btn-secondary" disabled title="No tienes permiso para crear eventos">
-                CREAR EVENTO (SIN PERMISO)
-              </button>
-            )}
+            <button className="btn-secondary" onClick={() => navigate("/titulares")}>
+              &larr; Volver a Titulares
+            </button>
 
             {puedeBuscarEvento && (
               <button className="btn-secondary" onClick={() => navigate("/buscar-evento")}>
-                BUSCAR EVENTO
+                BUSCAR EVENTO EXISTENTE
+              </button>
+            )}
+
+            {puedeCrearEventos && (
+              <button
+                className="btn-primary-dark"
+                onClick={() => navigate(`/crear-evento/${id}`)}
+              >
+                + CREAR EVENTO
               </button>
             )}
           </div>

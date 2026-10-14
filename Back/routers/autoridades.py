@@ -28,7 +28,6 @@ class NotaAutoridadItem(BaseModel):
 
 
 class AutoridadCompletaPayload(BaseModel):
-    # Campos enviados desde AutoridadesPage.jsx o modal rápido
     id_sufijo: Optional[str] = None
     nombre: Optional[str] = None
     pref_label: Optional[str] = None
@@ -65,7 +64,6 @@ def construir_tripletas_autoridad(uri: str, data: AutoridadCompletaPayload, fech
     termino = (data.nombre or data.pref_label or "").strip()
     tipo_raw = (data.tipo_nombre or data.tipo or "Agente").strip()
 
-    # Normalizar clase del modelo para búsquedas por ?tipo=Materia o ?tipo=Lugar
     tipo_map = {
         "Materia": "Materia",
         "Categoría": "Materia",
@@ -118,13 +116,17 @@ def construir_tripletas_autoridad(uri: str, data: AutoridadCompletaPayload, fech
 
     for enl in (data.enlaces_externos or []):
         if enl.enlace and enl.enlace.strip():
-            valor_enl = f"{enl.tipo || 'Enlace'}|{enl.enlace.strip()}|{enl.fuente or ''}"
+            tipo_enl = enl.tipo if enl.tipo else "Enlace"
+            fuente_enl = enl.fuente if enl.fuente else ""
+            valor_enl = f"{tipo_enl}|{enl.enlace.strip()}|{fuente_enl}"
             triples.append(f"<{uri}> <http://proyecto-noticias.org/core#enlaceExterno> {format_literal(valor_enl)} .")
 
     # Notas
     for n in (data.notas or []):
         if n.texto and n.texto.strip():
-            valor_nota = f"{n.tipo or 'General'}|{n.texto.strip()}|{'1' if n.soloStaff else '0'}"
+            tipo_nota = n.tipo if n.tipo else "General"
+            flag_staff = "1" if n.soloStaff else "0"
+            valor_nota = f"{tipo_nota}|{n.texto.strip()}|{flag_staff}"
             triples.append(f"<{uri}> <http://www.w3.org/2004/02/skos/core#note> {format_literal(valor_nota)} .")
 
     return "\n            ".join(triples)

@@ -1,8 +1,7 @@
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from core.security import get_current_user, require_role
-from routers import autoridades, noticias
-
+from routers import autoridades, noticias, eventos
 
 
 app = FastAPI(
@@ -11,6 +10,7 @@ app = FastAPI(
 )
 app.include_router(autoridades.router)
 app.include_router(noticias.router)
+app.include_router(eventos.router)
 # Habilitar CORS para peticiones desde React (Vite: 5173)
 app.add_middleware(
     CORSMiddleware,

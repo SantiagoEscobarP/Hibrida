@@ -1,23 +1,20 @@
 // src/pages/BuscadorPage.jsx
-// Buscador de datos enlazados (Linked Data) sobre Apache Jena Fuseki.
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import "./BuscadorPage.css";
 
-const API = "http://localhost:5000";
+const API = "http://localhost:8000";
 
 const TIPOS = [
-  { value: "", label: "Todos los tipos" },
-  { value: "evento", label: "Eventos" },
-  { value: "agente", label: "Agentes" },
-  { value: "autoridad", label: "Autoridades" },
-  { value: "estructura", label: "Estructuras criminales" },
-  { value: "organizacion", label: "Organizaciones armadas" },
-  { value: "lider", label: "Líderes" },
-  { value: "categoria", label: "Materias / categorías" },
-  { value: "lugar", label: "Lugares geográficos" },
-  { value: "sector", label: "Sectores económicos" },
+  { value: "", label: "Todos los tipos en el grafo" },
+  { value: "NewsArticle", label: "Titulares de Noticias" },
+  { value: "Evento", label: "Eventos" },
+  { value: "Persona", label: "Personas" },
+  { value: "Organizacion", label: "Organizaciones / Entidades" },
+  { value: "GrupoCriminal", label: "Estructuras / Grupos Criminales" },
+  { value: "Materia", label: "Materias / Categorías" },
+  { value: "Lugar", label: "Lugares / Municipios" },
 ];
 
 function BuscadorPage({ usuario }) {
@@ -39,7 +36,6 @@ function BuscadorPage({ usuario }) {
     }
   }, [usuario]);
 
-  // Estadísticas del grafo al entrar
   useEffect(() => {
     fetch(`${API}/api/grafo/estadisticas`)
       .then((r) => r.json())
@@ -52,6 +48,7 @@ function BuscadorPage({ usuario }) {
     const params = new URLSearchParams();
     if (texto.trim()) params.set("q", texto.trim());
     if (tipo) params.set("tipo", tipo);
+
     fetch(`${API}/api/buscar?${params.toString()}`)
       .then((r) => r.json())
       .then((d) => setResultados(d.resultados || []))
@@ -59,11 +56,9 @@ function BuscadorPage({ usuario }) {
       .finally(() => setCargando(false));
   };
 
-  // Búsqueda inicial y en tiempo real (con pequeño debounce)
   useEffect(() => {
-    const t = setTimeout(buscar, 350);
+    const t = setTimeout(buscar, 300);
     return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [texto, tipo]);
 
   const verDetalle = (uri) => {
@@ -76,18 +71,17 @@ function BuscadorPage({ usuario }) {
   return (
     <div className="page-container">
       <Navbar usuario={usuarioSesion} onLogout={() => navigate("/login")} />
-
       <div className="content-area">
         <header className="page-header-title">
-          <h2>BUSCADOR FUSEKI (DATOS ENLAZADOS)</h2>
+          <h2>EXPLORADOR SEMÁNTICO Y ESTADÍSTICAS DEL GRAFO (FUSEKI)</h2>
         </header>
 
         {estadisticas && estadisticas.por_tipo && (
           <div className="grafo-stats">
-            <span className="grafo-total">Total en el grafo: {estadisticas.total}</span>
+            <span className="grafo-total">Total recursos RDF: {estadisticas.total}</span>
             {Object.entries(estadisticas.por_tipo).map(([k, v]) => (
               <span key={k} className={`stat-chip ${v === 0 ? "stat-empty" : ""}`}>
-                {k}: {v}
+                {k}: <strong>{v}</strong>
               </span>
             ))}
           </div>
@@ -97,46 +91,62 @@ function BuscadorPage({ usuario }) {
           <input
             type="text"
             className="buscador-input"
-            placeholder="Buscar en el grafo (eventos, autoridades, estructuras, lugares...)"
+            placeholder="Buscar en el grafo (noticias, eventos, autoridades, lugares...)"
             value={texto}
             onChange={(e) => setTexto(e.target.value)}
           />
-          <select className="buscador-select" value={tipo} onChange={(e) => setTipo(e.target.value)}>
+          <select
+            className="buscador-select"
+            value={tipo}
+            onChange={(e) => setTipo(e.target.value)}
+          >
             {TIPOS.map((t) => (
-              <option key={t.value} value={t.value}>{t.label}</option>
+              <option key={t.value} value={t.value}>
+                {t.label}
+              </option>
             ))}
           </select>
-          <button className="btn-reg" onClick={buscar}>BUSCAR</button>
+          <button className="btn-primary-dark" onClick={buscar}>
+            BUSCAR
+          </button>
         </div>
-
-        {cargando && <p className="buscador-hint">Buscando en Fuseki...</p>}
-
-        {!cargando && resultados.length === 0 && (
-          <p className="buscador-hint">Sin resultados. Ajusta el texto o el tipo.</p>
-        )}
 
         <div className="buscador-layout">
           <div className="buscador-resultados">
-            {resultados.map((r) => (
-              <div
-                key={r.uri}
-                className={`resultado-item ${detalle?.uri === r.uri ? "resultado-activo" : ""}`}
-                onClick={() => verDetalle(r.uri)}
-              >
-                <span className="resultado-tipo">{r.tipo_etiqueta}</span>
-                <span className="resultado-nombre">{r.nombre}</span>
-              </div>
-            ))}
+            {cargando ? (
+              <p className="buscador-hint" style={{ padding: "20px" }}>
+                Consultando tripletas en Apache Jena Fuseki...
+              </p>
+            ) : resultados.length === 0 ? (
+              <p className="buscador-hint" style={{ padding: "20px" }}>
+                Sin resultados para este filtro.
+              </p>
+            ) : (
+              resultados.map((r) => (
+                <div
+                  key={r.uri}
+                  className={`resultado-item ${detalle?.uri === r.uri ? "resultado-activo" : ""}`}
+                  onClick={() => verDetalle(r.uri)}
+                >
+                  <span className="resultado-tipo">{r.tipo_etiqueta}</span>
+                  <span className="resultado-nombre">{r.nombre}</span>
+                </div>
+              ))
+            )}
           </div>
 
           <div className="buscador-detalle">
-            {!detalle && <p className="buscador-hint">Selecciona un resultado para ver sus conexiones (datos enlazados).</p>}
+            {!detalle && (
+              <p className="buscador-hint">
+                Selecciona cualquier nodo de la izquierda para inspeccionar sus tripletas y navegar sus relaciones.
+              </p>
+            )}
             {detalle && (
               <>
                 <h3>{detalle.label}</h3>
                 <p className="detalle-uri">{detalle.uri}</p>
 
-                <h4>Propiedades</h4>
+                <h4>Propiedades y Relaciones Salientes</h4>
                 <table className="detalle-tabla">
                   <tbody>
                     {detalle.propiedades.map((p, i) => (
@@ -144,8 +154,12 @@ function BuscadorPage({ usuario }) {
                         <td className="detalle-pred">{p.predicado}</td>
                         <td>
                           {p.tipo_nodo === "uri" ? (
-                            <span className="detalle-enlace" title={p.valor}>
-                              {p.valor_label || p.valor}
+                            <span
+                              className="detalle-enlace"
+                              title={p.valor}
+                              onClick={() => verDetalle(p.valor)}
+                            >
+                              🔗 {p.valor_label || p.valor}
                             </span>
                           ) : (
                             String(p.valor)
@@ -156,9 +170,9 @@ function BuscadorPage({ usuario }) {
                   </tbody>
                 </table>
 
-                <h4>Conexiones entrantes ({detalle.conexiones_entrantes.length})</h4>
+                <h4>Conexiones Entrantes ({detalle.conexiones_entrantes.length})</h4>
                 {detalle.conexiones_entrantes.length === 0 ? (
-                  <p className="buscador-hint">Ninguna entidad apunta a esta todavía.</p>
+                  <p className="buscador-hint">Ninguna entidad apunta directamente a este recurso.</p>
                 ) : (
                   <table className="detalle-tabla">
                     <tbody>
@@ -166,8 +180,11 @@ function BuscadorPage({ usuario }) {
                         <tr key={i}>
                           <td className="detalle-pred">{c.predicado}</td>
                           <td>
-                            <span className="detalle-enlace" onClick={() => verDetalle(c.sujeto_uri)}>
-                              {c.sujeto_label}
+                            <span
+                              className="detalle-enlace"
+                              onClick={() => verDetalle(c.sujeto_uri)}
+                            >
+                              🔗 {c.sujeto_label}
                             </span>
                           </td>
                         </tr>

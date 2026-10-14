@@ -2,132 +2,153 @@
 .grafo-stats {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 10px;
   align-items: center;
-  margin: 12px 0 18px;
-  padding: 10px 14px;
-  background: #f4f6f8;
-  border: 1px solid #dde3e8;
-  border-radius: 6px;
+  margin: 0 0 22px;
+  padding: 16px 22px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
+  box-shadow: 0 4px 16px rgba(13, 27, 42, 0.04);
 }
 
 .grafo-total {
-  font-weight: 700;
-  color: #1f2d3d;
-  margin-right: 8px;
+  font-weight: 800;
+  color: #0d1b2a;
+  margin-right: 10px;
+  font-size: 14px;
 }
 
 .stat-chip {
   font-size: 12px;
-  padding: 3px 9px;
-  border-radius: 12px;
-  background: #e3ecf5;
-  color: #24425f;
-}
-
-.stat-chip.stat-empty {
-  background: #f6e3e3;
-  color: #8a3b3b;
+  padding: 6px 14px;
+  border-radius: 20px;
+  background: #e6f1fe;
+  color: #006fee;
+  font-weight: 600;
 }
 
 .buscador-bar {
   display: flex;
-  gap: 10px;
-  margin-bottom: 16px;
+  gap: 12px;
+  margin-bottom: 22px;
+  background: #ffffff;
+  padding: 16px 20px;
+  border-radius: 18px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 16px rgba(13, 27, 42, 0.04);
 }
 
 .buscador-input {
   flex: 1;
-  padding: 10px 12px;
-  border: 1px solid #c8d2da;
-  border-radius: 5px;
+  height: 42px;
+  padding: 0 14px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 12px;
   font-size: 14px;
+  outline: none;
+}
+
+.buscador-input:focus,
+.buscador-select:focus {
+  border-color: #006fee;
 }
 
 .buscador-select {
-  padding: 10px 12px;
-  border: 1px solid #c8d2da;
-  border-radius: 5px;
-  background: #fff;
+  height: 42px;
+  padding: 0 14px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 12px;
+  background: #ffffff;
   font-size: 14px;
-}
-
-.buscador-hint {
-  color: #6b7a88;
-  font-size: 13px;
-  margin: 8px 0;
+  color: #0d1b2a;
 }
 
 .buscador-layout {
   display: grid;
   grid-template-columns: 1fr 1.4fr;
-  gap: 18px;
+  gap: 22px;
   align-items: start;
 }
 
 .buscador-resultados {
-  max-height: 60vh;
+  max-height: 65vh;
   overflow-y: auto;
-  border: 1px solid #dde3e8;
-  border-radius: 6px;
-  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  background: #ffffff;
+  box-shadow: 0 6px 20px rgba(13, 27, 42, 0.04);
 }
 
 .resultado-item {
   display: flex;
   justify-content: space-between;
-  gap: 10px;
-  padding: 10px 12px;
-  border-bottom: 1px solid #eef2f5;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  border-bottom: 1px solid #f1f5f9;
   cursor: pointer;
+  transition: background-color 0.15s ease;
 }
 
 .resultado-item:hover {
-  background: #f4f8fb;
+  background: #f8fafc;
 }
 
 .resultado-activo {
-  background: #e3ecf5;
+  background: #e6f1fe !important;
 }
 
 .resultado-tipo {
   font-size: 11px;
+  font-weight: 800;
   text-transform: uppercase;
-  color: #5a6b7b;
+  background: #f1f5f9;
+  color: #475569;
+  padding: 4px 10px;
+  border-radius: 8px;
   white-space: nowrap;
 }
 
 .resultado-nombre {
   font-weight: 600;
-  color: #1f2d3d;
+  font-size: 13px;
+  color: #0d1b2a;
   text-align: right;
 }
 
 .buscador-detalle {
-  border: 1px solid #dde3e8;
-  border-radius: 6px;
-  background: #fff;
-  padding: 16px;
-  min-height: 200px;
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  background: #ffffff;
+  padding: 26px;
+  min-height: 280px;
+  box-shadow: 0 6px 20px rgba(13, 27, 42, 0.04);
 }
 
 .buscador-detalle h3 {
-  margin: 0 0 4px;
-  color: #1f2d3d;
+  margin: 0 0 6px;
+  color: #0d1b2a;
+  font-size: 18px;
 }
 
 .buscador-detalle h4 {
-  margin: 16px 0 6px;
-  color: #24425f;
-  font-size: 13px;
+  margin: 22px 0 10px;
+  color: #006fee;
+  font-size: 12px;
+  font-weight: 800;
   text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .detalle-uri {
-  font-size: 11px;
-  color: #8a97a3;
+  font-size: 12px;
+  color: #64748b;
   word-break: break-all;
-  margin: 0 0 8px;
+  margin: 0 0 12px;
+  background: #f8fafc;
+  padding: 6px 10px;
+  border-radius: 8px;
 }
 
 .detalle-tabla {
@@ -137,19 +158,23 @@
 }
 
 .detalle-tabla td {
-  padding: 5px 8px;
-  border-bottom: 1px solid #eef2f5;
+  padding: 10px 8px;
+  border-bottom: 1px solid #f1f5f9;
   vertical-align: top;
 }
 
 .detalle-pred {
-  color: #5a6b7b;
-  white-space: nowrap;
-  width: 40%;
+  color: #475569;
+  font-weight: 700;
+  width: 35%;
 }
 
 .detalle-enlace {
-  color: #1a6fb5;
+  color: #006fee;
+  font-weight: 600;
   cursor: pointer;
+}
+
+.detalle-enlace:hover {
   text-decoration: underline;
 }
