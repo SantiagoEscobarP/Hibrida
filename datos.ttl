@@ -1,0 +1,221 @@
+PREFIX core: <http://proyecto-noticias.org/core#>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+PREFIX schema: <http://schema.org/>
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+
+INSERT DATA {
+
+  # =====================================================================
+  # GRAFO 1: AUTORIDADES (Materias, Lugares, Personas, Organizaciones)
+  # =====================================================================
+  GRAPH <http://proyecto-noticias.org/graph/authorities> {
+
+    # --- MATERIAS / CATEGORÍAS ---
+    <http://proyecto-noticias.org/authorities/mat_homicidio> a core:Materia ;
+        core:tipoNombre "Materia" ;
+        skos:prefLabel "Homicidio" ;
+        skos:altLabel "Asesinato selectivo" ;
+        skos:definition "Privación ilegítima de la vida producida en hechos de violencia u orden público." ;
+        schema:inLanguage "Español" ;
+        schema:dateCreated "2026-10-10T08:00:00"^^xsd:dateTime ;
+        schema:dateModified "2026-10-14T08:00:00"^^xsd:dateTime .
+
+    <http://proyecto-noticias.org/authorities/mat_atentado> a core:Materia ;
+        core:tipoNombre "Materia" ;
+        skos:prefLabel "Atentado con Explosivos" ;
+        skos:altLabel "Terrorismo" ;
+        skos:definition "Uso de artefactos explosivos contra infraestructura, fuerza pública o población civil." ;
+        schema:inLanguage "Español" ;
+        schema:dateCreated "2026-10-10T08:00:00"^^xsd:dateTime ;
+        schema:dateModified "2026-10-14T08:00:00"^^xsd:dateTime .
+
+    <http://proyecto-noticias.org/authorities/mat_detencion> a core:Materia ;
+        core:tipoNombre "Materia" ;
+        skos:prefLabel "Detención" ;
+        skos:altLabel "Capturas" ;
+        skos:definition "Operativos de captura, judicialización o medidas de aseguramiento." ;
+        schema:inLanguage "Español" ;
+        schema:dateCreated "2026-10-10T08:00:00"^^xsd:dateTime ;
+        schema:dateModified "2026-10-14T08:00:00"^^xsd:dateTime .
+
+    <http://proyecto-noticias.org/authorities/mat_hurto> a core:Materia ;
+        core:tipoNombre "Materia" ;
+        skos:prefLabel "Hurto" ;
+        skos:altLabel "Atraco / Fleteo" ;
+        skos:definition "Despojo violento o sistemático de bienes muebles en entornos urbanos o rurales." ;
+        schema:inLanguage "Español" ;
+        schema:dateCreated "2026-10-10T08:00:00"^^xsd:dateTime ;
+        schema:dateModified "2026-10-14T08:00:00"^^xsd:dateTime .
+
+    <http://proyecto-noticias.org/authorities/mat_combates> a core:Materia ;
+        core:tipoNombre "Materia" ;
+        skos:prefLabel "Combates" ;
+        skos:altLabel "Hostigamiento armado" ;
+        skos:definition "Enfrentamientos armados entre la Fuerza Pública y estructuras ilegales." ;
+        schema:inLanguage "Español" ;
+        schema:dateCreated "2026-10-10T08:00:00"^^xsd:dateTime ;
+        schema:dateModified "2026-10-14T08:00:00"^^xsd:dateTime .
+
+    # --- LUGARES / MUNICIPIOS ---
+    <http://proyecto-noticias.org/authorities/mun_bogota> a core:Lugar ;
+        core:tipoNombre "Lugar" ;
+        skos:prefLabel "Bogotá D.C." ;
+        skos:altLabel "Distrito Capital" ;
+        schema:inLanguage "Español" ;
+        core:enlaceExterno "Wikidata|https://www.wikidata.org/wiki/Q2841|" ;
+        schema:dateCreated "2026-10-10T08:00:00"^^xsd:dateTime ;
+        schema:dateModified "2026-10-14T08:00:00"^^xsd:dateTime .
+
+    <http://proyecto-noticias.org/authorities/mun_yopal> a core:Lugar ;
+        core:tipoNombre "Lugar" ;
+        skos:prefLabel "Yopal" ;
+        skos:altLabel "Yopal (Casanare)" ;
+        schema:inLanguage "Español" ;
+        schema:dateCreated "2026-10-10T08:00:00"^^xsd:dateTime ;
+        schema:dateModified "2026-10-14T08:00:00"^^xsd:dateTime .
+
+    <http://proyecto-noticias.org/authorities/mun_miranda> a core:Lugar ;
+        core:tipoNombre "Lugar" ;
+        skos:prefLabel "Miranda (Cauca)" ;
+        skos:altLabel "Miranda" ;
+        schema:inLanguage "Español" ;
+        schema:dateCreated "2026-10-10T08:00:00"^^xsd:dateTime ;
+        schema:dateModified "2026-10-14T08:00:00"^^xsd:dateTime .
+
+    # --- PERSONAS ---
+    <http://proyecto-noticias.org/authorities/aut_eduard_martinez> a core:Persona ;
+        core:tipoNombre "Persona" ;
+        skos:prefLabel "Eduard Daniel Martínez" ;
+        skos:altLabel "Alias Eduard" ;
+        skos:definition "Presunto implicado en el transporte logístico para el homicidio del exalcalde de Yopal." ;
+        schema:inLanguage "Español" ;
+        schema:dateCreated "2026-10-11T09:00:00"^^xsd:dateTime ;
+        schema:dateModified "2026-10-14T09:00:00"^^xsd:dateTime .
+
+    <http://proyecto-noticias.org/authorities/aut_john_torres> a core:Persona ;
+        core:tipoNombre "Persona" ;
+        skos:prefLabel "John Jairo Torres" ;
+        skos:altLabel "John Calzones" ;
+        skos:definition "Exalcalde del municipio de Yopal, Casanare, víctima de ataque sicarial." ;
+        schema:inLanguage "Español" ;
+        schema:dateCreated "2026-10-11T09:00:00"^^xsd:dateTime ;
+        schema:dateModified "2026-10-14T09:00:00"^^xsd:dateTime .
+
+    # --- ENTIDADES Y GRUPOS CRIMINALES ---
+    <http://proyecto-noticias.org/authorities/aut_fiscalia> a core:Organizacion ;
+        core:tipoNombre "Entidad" ;
+        skos:prefLabel "Fiscalía General de la Nación" ;
+        skos:altLabel "CTI Fiscalía" ;
+        schema:inLanguage "Español" ;
+        core:enlaceExterno "Sitio Oficial|https://www.fiscalia.gov.co|" ;
+        schema:dateCreated "2026-10-10T09:00:00"^^xsd:dateTime ;
+        schema:dateModified "2026-10-14T09:00:00"^^xsd:dateTime .
+
+    <http://proyecto-noticias.org/authorities/aut_tren_aragua> a core:GrupoCriminal ;
+        core:tipoNombre "Grupo Criminal" ;
+        skos:prefLabel "Tren de Aragua" ;
+        skos:altLabel "Estructura transnacional Tren de Aragua" ;
+        skos:definition "Organización multicrimen con presencia en localidades de Bogotá." ;
+        schema:inLanguage "Español" ;
+        schema:dateCreated "2026-10-10T09:00:00"^^xsd:dateTime ;
+        schema:dateModified "2026-10-14T09:00:00"^^xsd:dateTime .
+
+    <http://proyecto-noticias.org/authorities/aut_disidencias_mordisco> a core:GrupoCriminal ;
+        core:tipoNombre "Grupo Criminal" ;
+        skos:prefLabel "Estado Mayor Central (Disidencias)" ;
+        skos:altLabel "Frente Dagoberto Ramos" ;
+        skos:definition "Estructura armada residual con injerencia en el norte del Cauca." ;
+        schema:inLanguage "Español" ;
+        schema:dateCreated "2026-10-10T09:00:00"^^xsd:dateTime ;
+        schema:dateModified "2026-10-14T09:00:00"^^xsd:dateTime .
+  }
+
+  # =====================================================================
+  # GRAFO 2: NOTICIAS Y EVENTOS (Flujo OK y Flujo PEND)
+  # =====================================================================
+  GRAPH <http://proyecto-noticias.org/graph/news> {
+
+    # -------------------------------------------------------------------
+    # CASO 1 (ESTADO "OK"): Noticia de Homicidio YA indexada con su Evento
+    # -------------------------------------------------------------------
+    <http://proyecto-noticias.org/news/not_yopal_001> a schema:NewsArticle ;
+        schema:headline """Enviaron a la cárcel a alias Eduard, el segundo capturado por el asesinato de John 'Calzones', exalcalde de Yopal""" ;
+        schema:articleBody """Un juez de control de garantías envió a la cárcel a Eduard Daniel Martínez, alias Eduard, por su presunta participación en el asesinato de John Jairo Torres, exalcalde de Yopal. Según la Fiscalía Seccional Casanare, habría conducido la motocicleta empleada en el ataque sicarial en la finca La Selvita.""" ;
+        schema:publisher """El Tiempo - Justicia""" ;
+        schema:datePublished "2026-10-12T14:30:00"^^xsd:dateTime ;
+        core:tieneMateria <http://proyecto-noticias.org/authorities/mat_homicidio> ;
+        core:relataEvento <http://proyecto-noticias.org/events/ev_yopal_001> .
+
+    <http://proyecto-noticias.org/events/ev_yopal_001> a core:Evento ;
+        core:tituloEvento """Judicialización de alias Eduard por homicidio de exalcalde de Yopal""" ;
+        schema:abstract """Agentes del CTI de la Fiscalía y la Policía Nacional capturaron e imputaron por homicidio agravado a Eduard Daniel Martínez tras el ataque armado en la finca La Selvita de Yopal.""" ;
+        core:municipio <http://proyecto-noticias.org/authorities/mun_yopal> ;
+        core:municipioTexto """Yopal""" ;
+        core:subdivisionTexto """Zona Rural""" ;
+        core:complemento """Vereda / Finca La Selvita""" ;
+        core:tieneMateria <http://proyecto-noticias.org/authorities/mat_homicidio> ;
+        core:categoriaTexto """Homicidio""" ;
+        schema:dateCreated "2026-10-13T10:15:00"^^xsd:dateTime ;
+        core:agenteMencionado """John Jairo Torres""" ;
+        core:agenteMencionado """Eduard Daniel Martínez""" ;
+        core:involucraAgente [
+            a core:Involucramiento ;
+            core:tieneAutoridad <http://proyecto-noticias.org/authorities/aut_john_torres> ;
+            core:tipoParticipacion core:Victima ;
+            core:rol """Exalcalde / Víctima fatal"""
+        ] ;
+        core:involucraAgente [
+            a core:Involucramiento ;
+            core:tieneAutoridad <http://proyecto-noticias.org/authorities/aut_eduard_martinez> ;
+            core:tipoParticipacion core:Victimario ;
+            core:rol """Conductor de motocicleta en ataque sicarial"""
+        ] ;
+        core:payloadJson """{"fechaCatalogacion":"13/10/2026","titulo":"Judicialización de alias Eduard por homicidio de exalcalde de Yopal","resumen":"Agentes del CTI de la Fiscalía y la Policía Nacional capturaron e imputaron por homicidio agravado a Eduard Daniel Martínez tras el ataque armado en la finca La Selvita de Yopal.","municipio":"Yopal","subdivision":"Zona Rural","complemento":"Vereda / Finca La Selvita","afectados":[{"nombre":"John Jairo Torres","tipoNombre":"Persona","afiliacion":"Exalcalde","rol":"Víctima fatal"}],"victimarios":[{"nombre":"Eduard Daniel Martínez","tipoNombre":"Persona","afiliacion":"Sicariato","rol":"Coautor","edad":"26"}],"materiasList":[{"materia":"Homicidio","subjectSource":"Other","subjectType":"Topical term"}],"notasList":[{"tipo":"Nota de agentes","nota":"Capturado en Tunja por orden judicial","soloStaff":false}]}""" .
+
+    # -------------------------------------------------------------------
+    # CASO 2 (ESTADO "OK"): Noticia de Explosivos en Cauca YA indexada
+    # -------------------------------------------------------------------
+    <http://proyecto-noticias.org/news/not_cauca_002> a schema:NewsArticle ;
+        schema:headline """Destruyen más de 250 kilos de explosivos en Miranda (Cauca) tras ataques contra la población""" ;
+        schema:articleBody """Tropas del Ejército Nacional y la Policía ubicaron y destruyeron de manera controlada un depósito ilegal con más de 250 kilogramos de explosivos y artefactos improvisados atribuidos a disidencias en zona rural de Miranda, Cauca.""" ;
+        schema:publisher """El Espectador - Judicial""" ;
+        schema:datePublished "2026-10-13T09:20:00"^^xsd:dateTime ;
+        core:tieneMateria <http://proyecto-noticias.org/authorities/mat_atentado> ;
+        core:relataEvento <http://proyecto-noticias.org/events/ev_cauca_002> .
+
+    <http://proyecto-noticias.org/events/ev_cauca_002> a core:Evento ;
+        core:tituloEvento """Incautación y destrucción de 250 kg de explosivos en Miranda, Cauca""" ;
+        schema:abstract """Operativo conjunto permitió neutralizar artefactos explosivos listos para ser empleados en hostigamientos contra la fuerza pública y población civil en el norte del Cauca.""" ;
+        core:municipio <http://proyecto-noticias.org/authorities/mun_miranda> ;
+        core:municipioTexto """Miranda (Cauca)""" ;
+        core:subdivisionTexto """Zona montañosa""" ;
+        core:complemento """Corregimiento El Ortigal""" ;
+        core:tieneMateria <http://proyecto-noticias.org/authorities/mat_atentado> ;
+        core:categoriaTexto """Atentado con Explosivos""" ;
+        core:organizacionPerpetradora """Estado Mayor Central (Disidencias)""" ;
+        schema:dateCreated "2026-10-13T16:40:00"^^xsd:dateTime ;
+        core:agenteMencionado """Estado Mayor Central (Disidencias)""" ;
+        core:payloadJson """{"fechaCatalogacion":"13/10/2026","titulo":"Incautación y destrucción de 250 kg de explosivos en Miranda, Cauca","resumen":"Operativo conjunto permitió neutralizar artefactos explosivos listos para ser empleados en hostigamientos contra la fuerza pública y población civil en el norte del Cauca.","municipio":"Miranda (Cauca)","subdivision":"Zona montañosa","complemento":"Corregimiento El Ortigal","afectados":[{"nombre":"Población Civil de Miranda","tipoNombre":"Entidad","afiliacion":"Comunidad","rol":"Afectado"}],"victimarios":[{"nombre":"Estado Mayor Central (Disidencias)","tipoNombre":"Grupo Criminal","afiliacion":"Frente Dagoberto Ramos","rol":"Perpetrador","edad":""}],"organizacion":{"id":"aut_disidencias_mordisco","nombre":"Estado Mayor Central (Disidencias)","alias":"Frente Dagoberto Ramos"},"materiasList":[{"materia":"Atentado con Explosivos","subjectSource":"Other","subjectType":"Topical term"}],"notasList":[]}""" .
+
+    # -------------------------------------------------------------------
+    # CASO 3 (ESTADO "PEND"): Noticia pendiente de indexar (Para que hagas la prueba manual)
+    # -------------------------------------------------------------------
+    <http://proyecto-noticias.org/news/not_bogota_003> a schema:NewsArticle ;
+        schema:headline """En operativos simultáneos en Bogotá cayeron integrantes del Tren de Aragua y Los Buitres""" ;
+        schema:articleBody """La Policía Metropolitana de Bogotá y la Fiscalía General de la Nación adelantaron 14 diligencias de allanamiento en las localidades de Kennedy y Bosa, logrando la detención de ocho presuntos integrantes dedicados a la extorsión y el microtráfico.""" ;
+        schema:publisher """Alerta Bogotá""" ;
+        schema:datePublished "2026-10-14T07:45:00"^^xsd:dateTime ;
+        core:tieneMateria <http://proyecto-noticias.org/authorities/mat_detencion> .
+
+    # -------------------------------------------------------------------
+    # CASO 4 (ESTADO "PEND"): Segunda noticia pendiente (Hurto en Bogotá)
+    # -------------------------------------------------------------------
+    <http://proyecto-noticias.org/news/not_bogota_004> a schema:NewsArticle ;
+        schema:headline """Reacción policial evitó fleteo de $30 millones en el sector de El Salitre en Bogotá""" ;
+        schema:articleBody """Uniformados interceptaron a dos sujetos que se movilizaban en motocicleta tras intimidar con arma de fuego a un ciudadano que acababa de retirar dinero de una entidad bancaria en la localidad de Fontibón.""" ;
+        schema:publisher """Q'hubo Bogotá""" ;
+        schema:datePublished "2026-10-14T11:10:00"^^xsd:dateTime ;
+        core:tieneMateria <http://proyecto-noticias.org/authorities/mat_hurto> .
+  }
+}

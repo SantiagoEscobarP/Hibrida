@@ -10,7 +10,7 @@ services:
       - ADMIN_PASSWORD=${ADMIN_PASSWORD}
       - JAVA_OPTIONS=-Xmx2048m -Xms512m
     volumes:
-      - fuseki_data:/fuseki
+      - fuseki_data:/fuseki-base
     networks:
       - news_network
 
@@ -57,6 +57,51 @@ services:
       - ./keycloak/realms:/opt/keycloak/data/import
     networks:
       - news_network
+      
+# --- AGREGA ESTOS DOS SERVICIOS A TU DOCKER-COMPOSE ACTUAL ---
+
+  backend:
+    build:
+      context: ./Back
+      dockerfile: Dockerfile
+    container_name: pressindex_backend
+    ports:
+      - "8000:8000"
+    environment:
+      # Reemplaza "fuseki" y "keycloak" si tus servicios tienen otro nombre en tu compose
+      - FUSEKI_BASE_URL=http://localhost:3030
+      - FUSEKI_DATASET=noticias_op
+      - FUSEKI_USER=admin
+      - FUSEKI_PASSWORD=${ADMIN_PASSWORD}
+      - KEYCLOAK_INTERNAL_URL=http://keycloak:8080
+      - KEYCLOAK_REALM=noticias-realm
+      - KEYCLOAK_ISSUER=http://localhost:8080/realms/noticias-realm
+    volumes:
+      - ./Back:/app
+    depends_on:
+      - fuseki
+      - keycloak
+    restart: unless-stopped
+    # Si tus servicios actuales tienen una red asignada, pon la misma aquí:
+    # networks:
+    #   - nombre_de_tu_red
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: pressindex_frontend
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+    restart: unless-stopped
+    # Si tus servicios actuales tienen una red asignada, pon la misma aquí:
+    # networks:
+    #   - nombre_de_tu_red
 
 volumes:
   fuseki_data:
