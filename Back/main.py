@@ -2,12 +2,15 @@ from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from core.security import get_current_user, require_role
 from routers import autoridades, noticias, eventos
-
+from routers import autoridades, noticias, eventos, admin_config
 
 app = FastAPI(
     title="API de Indexación de Noticias de Orden Público",
     version="1.0.0"
 )
+
+
+app.include_router(admin_config.router)
 app.include_router(autoridades.router)
 app.include_router(noticias.router)
 app.include_router(eventos.router)

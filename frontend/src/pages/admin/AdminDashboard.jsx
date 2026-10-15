@@ -1,9 +1,9 @@
+// src/pages/admin/AdminDashboard.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import { apiRequest } from "./adminApi";
 
 function AdminDashboard({ onNavigate, onToast }) {
   const [stats, setStats] = useState({
-    usuarios: [],
     fuentes: [],
     listaNegra: [],
   });
@@ -12,12 +12,11 @@ function AdminDashboard({ onNavigate, onToast }) {
   const cargarDatos = async () => {
     setLoading(true);
     try {
-      const [usuarios, fuentes, listaNegra] = await Promise.all([
-        apiRequest("/api/admin/usuarios"),
+      const [fuentes, listaNegra] = await Promise.all([
         apiRequest("/api/fuentes"),
         apiRequest("/api/lista-negra"),
       ]);
-      setStats({ usuarios, fuentes, listaNegra });
+      setStats({ fuentes, listaNegra });
     } catch (error) {
       onToast(`No se pudo cargar el dashboard: ${error.message}`, "error");
     } finally {
@@ -31,14 +30,7 @@ function AdminDashboard({ onNavigate, onToast }) {
   }, []);
 
   const resumen = useMemo(() => {
-    const totalUsuarios = stats.usuarios.length;
-    const activos = stats.usuarios.filter((u) => u.activo === true).length;
-    const pendientes = stats.usuarios.filter((u) => u.activo === false).length;
-
     return {
-      totalUsuarios,
-      activos,
-      pendientes,
       fuentesActivas: stats.fuentes.length,
       terminosBloqueados: stats.listaNegra.length,
     };
@@ -47,7 +39,7 @@ function AdminDashboard({ onNavigate, onToast }) {
   return (
     <div className="pi-admin-section">
       <div className="section-head">
-        <h2>Resumen general</h2>
+        <h2>Resumen general del sistema</h2>
         <button type="button" className="btn-secundario" onClick={cargarDatos} disabled={loading}>
           {loading ? "Actualizando..." : "Actualizar"}
         </button>
@@ -55,44 +47,36 @@ function AdminDashboard({ onNavigate, onToast }) {
 
       <div className="pi-admin-cards-grid">
         <article className="pi-admin-card">
-          <h3>Usuarios registrados</h3>
-          <p className="kpi">{resumen.totalUsuarios}</p>
-          <small>{resumen.activos} activos · {resumen.pendientes} pendientes/inactivos</small>
+          <h3>Gestión de Accesos</h3>
+          <p className="kpi" style={{ fontSize: "1.3rem", color: "#2563eb" }}>Keycloak</p>
+          <small>Identidad y roles centralizados OIDC</small>
         </article>
-
         <article className="pi-admin-card">
           <h3>Fuentes activas</h3>
           <p className="kpi">{resumen.fuentesActivas}</p>
-          <small>Fuentes disponibles para indexación</small>
+          <small>Feeds RSS y portales de scraping</small>
         </article>
-
         <article className="pi-admin-card">
           <h3>Lista negra activa</h3>
           <p className="kpi">{resumen.terminosBloqueados}</p>
-          <small>Términos restringidos para el bot</small>
+          <small>Términos de ruido filtrados por el bot</small>
         </article>
       </div>
 
-      <div className="pi-admin-quick-actions">
-        <button type="button" className="quick-card" onClick={() => onNavigate("usuarios")}>
-          <span>👥</span>
-          <div>
-            <strong>Gestionar usuarios</strong>
-            <p>Aprobar indexadores, desactivar cuentas o eliminar usuarios.</p>
-          </div>
-        </button>
+      <div className="pi-admin-quick-actions" style={{ gridTemplateColumns: "repeat(2, 1fr)" }}>
         <button type="button" className="quick-card" onClick={() => onNavigate("fuentes")}>
-          <span>📰</span>
+          <span>📡</span>
           <div>
             <strong>Administrar fuentes</strong>
-            <p>Registrar nuevas fuentes informativas y controlar su estado.</p>
+            <p>Registrar nuevas fuentes informativas y controlar su estado en Fuseki.</p>
           </div>
         </button>
+
         <button type="button" className="quick-card" onClick={() => onNavigate("lista-negra")}>
-          <span>⛔</span>
+          <span>🛡️</span>
           <div>
             <strong>Editar lista negra</strong>
-            <p>Agregar o remover términos para filtrado automatizado.</p>
+            <p>Agregar o remover términos de ruido para el filtrado automatizado del bot.</p>
           </div>
         </button>
       </div>
