@@ -8,13 +8,11 @@ import requests
 import schedule
 
 # ==========================================
-# CONFIGURACIÓN DEL SISTEMA
+# CONEXIÓN DIRECTA A FUSEKI (PUERTO 3030)
 # ==========================================
-BACKEND_URL = "http://localhost:8000"
-KEYCLOAK_URL = "http://localhost:8080/realms/noticias-realm/protocol/openid-connect/token"
-CLIENT_ID = "noticias-frontend"
-BOT_USER = "bot_ingesta"
-BOT_PASS = "BotIngesta2026*"
+FUSEKI_QUERY_URL = "http://localhost:3030/noticias_op/query"
+FUSEKI_UPDATE_URL = "http://localhost:3030/noticias_op/update"
+FUSEKI_AUTH = ("admin", "admin123")  # Funciona con o sin clave en Fuseki
 
 FECHA_MINIMA = datetime(2026, 1, 1)
 
@@ -26,10 +24,8 @@ HEADERS = {
 session = requests.Session()
 session.headers.update(HEADERS)
 
-token_actual = None
-
 # ==========================================
-# 10 FUENTES EXACTAS RECUPERADAS
+# 10 FUENTES ACTIVAS
 # ==========================================
 FUENTES = [
     {
@@ -85,52 +81,37 @@ FUENTES = [
 ]
 
 # ==========================================
-# AUTENTICACIÓN KEYCLOAK
-# ==========================================
-def obtener_token():
-    global token_actual
-    try:
-        resp = session.post(
-            KEYCLOAK_URL,
-            data={
-                "client_id": CLIENT_ID,
-                "grant_type": "password",
-                "username": BOT_USER,
-                "password": BOT_PASS,
-            },
-            timeout=8
-        )
-        resp.raise_for_status()
-        token_actual = resp.json()["access_token"]
-        return token_actual
-    except Exception as e:
-        print(f"✘ Error autenticando con Keycloak: {e}")
-        return None
-
-# ==========================================
-# REGLAS DE FILTRADO Y SEMÁNTICA
+# REGLAS DE FILTRADO Y MATERIAS RDF
 # ==========================================
 LISTA_NEGRA = [
     "horóscopo", "farándula", "lotería", "chance", "signos del zodiaco",
     "rock al parque", "concierto", "cine gratis", "feria de empleo", "vacantes",
     "arriendo", "acueducto", "tubo roto", "corte de agua", "respiratorio",
-    "pico y placa", "movilidad hoy", "campo de golf", "turismo"
+    "pico y placa", "campo de golf", "turismo", "becas", "colegio",
+    "notificación por aviso", "respuesta ticket", "respuesta tikec", "respuesta queja"
 ]
 
-ACTORES_CRITICOS = [
-    "disidencias", "disidente", "eln", "clan del golfo", "mordisco", "calarcá",
-    "atentado", "explosivos", "secuestro", "emboscada", "hostigamiento", "reclutamiento",
-    "sicario", "sicariato", "homicidio", "asesinato", "fuerza pública"
+INDICADORES_ORDEN_PUBLICO = [
+    "robo", "robaron", "ladrones", "ladrón", "atrac", "hurto", "asalto", "fleteo",
+    "captur", "detenid", "aprehend", "judicializ", "imputa", "condena", "cárcel", "prisión",
+    "homicidi", "asesin", "sicari", "muerte", "muerto", "sin vida", "crimen", "dispar",
+    "atentado", "bomba", "explosiv", "disturbios", "enfrentamiento", "combate",
+    "disidencias", "mordisco", "clan del golfo", "eln", "tren de aragua",
+    "banda", "extorsión", "amenaza", "operativo", "allanamiento", "fuga", "secuestro",
+    "narcotráfico", "incauta", "estupefacientes", "microtráfico", "violencia", "abuso"
 ]
+
+def escapar_sparql(texto: str) -> str:
+    """Escapa comillas y barras para literales RDF en triples comillas."""
+    if not texto:
+        return ""
+    return str(texto).replace("\\", "\\\\").replace('"', '\\"')
 
 def es_ruido(titulo, resumen):
     texto = f"{titulo or ''} {resumen or ''}".lower()
-    
-    # Si menciona actores o acciones armadas prioritarias, NO es ruido
-    if any(re.search(rf"\b{re.escape(act)}\b", texto) for act in ACTORES_CRITICOS):
-        return False
-        
-    return any(re.search(rf"\b{re.escape(p)}\b", texto) for p in LISTA_NEGRA)
+    if any(re.search(rf"\b{re.escape(p)}\b", texto) for p in LISTA_NEGRA):
+        return True
+    return False
 
 def es_fecha_valida(fecha_parsed):
     if not fecha_parsed:
@@ -150,107 +131,123 @@ def es_fecha_valida(fecha_parsed):
     except Exception:
         return True
 
-def buscar_materia_fuseki(titulo, resumen=""):
+def asignar_materia_rdf(titulo, resumen=""):
+    """Asigna exactamente las mismas URIs de materias del grafo de autoridades."""
     texto = f"{titulo} {resumen}".lower()
-    try:
-        resp = session.get(f"{BACKEND_URL}/api/autoridades?tipo=Materia", timeout=6)
-        if resp.status_code == 200:
-            materias = resp.json()
-            
-            # Coincidencia directa con etiquetas de autoridades existentes
-            for mat in materias:
-                nombre = (mat.get("prefLabel") or "").strip().lower()
-                if len(nombre) > 3 and re.search(rf"\b{re.escape(nombre)}\b", texto):
-                    return mat["uri"], mat.get("prefLabel")
 
-            # Mapeos semánticos clave
-            reglas = [
-                (r"\b(asesinat|homicidi|sicari|mataron|crimen|acribill)\w*", "homicidio"),
-                (r"\b(atentad|bomba|explosiv|cilindro)\w*", "atentado"),
-                (r"\b(captur|judicializ|a la cárcel|a prisión|detenid)\w*", "orden público")
-            ]
-            for regex, keyword in reglas:
-                if re.search(regex, texto):
-                    encontrada = next((m for m in materias if keyword in m.get("prefLabel", "").lower()), None)
-                    if encontrada:
-                        return encontrada["uri"], encontrada.get("prefLabel")
+    reglas = [
+        (r"\b(robo|robaron|ladron|atrac|hurto|asalto|fleteo)\w*", "http://proyecto-noticias.org/authorities/mat_hurto", "Hurto"),
+        (r"\b(asesin|homicidi|sicari|mataron|crimen|acribill|muerto|muerte|sin vida|dispar)\w*", "http://proyecto-noticias.org/authorities/mat_homicidio", "Homicidio"),
+        (r"\b(atentad|bomba|explosiv|cilindro|terroris)\w*", "http://proyecto-noticias.org/authorities/mat_atentado", "Atentado con Explosivos"),
+        (r"\b(combate|enfrentamiento|hostigamiento|emboscada|disidencias|mordisco)\w*", "http://proyecto-noticias.org/authorities/mat_combates", "Combates"),
+        (r"\b(captur|judicializ|imputa|condena|cárcel|prisión|detenid|aprehend|allanamiento|golpe|fuga)\w*", "http://proyecto-noticias.org/authorities/mat_detencion", "Detención"),
+    ]
 
-            # Fallback solo si es un hecho de orden público comprobado
-            if any(k in texto for k in ACTORES_CRITICOS) and materias:
-                return materias[0]["uri"], materias[0].get("prefLabel")
-    except Exception:
-        pass
+    for patron, uri, label in reglas:
+        if re.search(patron, texto):
+            return uri, label
+
+    if any(re.search(rf"\b{re.escape(k)}\b", texto) for k in INDICADORES_ORDEN_PUBLICO):
+        return "http://proyecto-noticias.org/authorities/mat_detencion", "Detención"
 
     return None, None
 
+def ya_existe_en_fuseki(noticia_uri: str) -> bool:
+    """Verifica en Fuseki (3030) si la noticia ya fue insertada antes."""
+    sparql_ask = f"""
+    ASK WHERE {{
+        GRAPH <http://proyecto-noticias.org/graph/news> {{
+            <{noticia_uri}> a <http://schema.org/NewsArticle> .
+        }}
+    }}
+    """
+    try:
+        r = session.post(
+            FUSEKI_QUERY_URL,
+            data={"query": sparql_ask},
+            headers={"Accept": "application/sparql-results+json"},
+            auth=FUSEKI_AUTH,
+            timeout=5
+        )
+        if r.status_code == 200:
+            return r.json().get("boolean", False)
+    except Exception:
+        pass
+    return False
+
 # ==========================================
-# ENVÍO DE TITULAR A FASTAPI -> FUSEKI
+# GUARDADO DIRECTO EN FUSEKI (3030) EN FORMATO RDF
 # ==========================================
 def guardar_titular(encabezado, resumen, url_fuente, fecha_publicacion, fuente_nombre="Bot"):
-    global token_actual
-
     if not encabezado or not url_fuente:
         return
 
     if es_ruido(encabezado, resumen):
-        print(f"⏭ Descartado por ruido: {encabezado[:50]}...")
+        print(f"⏭ Descartado por ruido: {encabezado[:55]}...")
         return
 
     if not es_fecha_valida(fecha_publicacion):
-        print(f"⏭ Descartado por fecha antigua: {encabezado[:50]}...")
+        print(f"⏭ Descartado por fecha antigua: {encabezado[:55]}...")
         return
 
-    materia_uri, cat_nombre = buscar_materia_fuseki(encabezado, resumen)
+    materia_uri, cat_nombre = asignar_materia_rdf(encabezado, resumen)
     if not materia_uri:
-        print(f"⏭ Omitido (no es orden público): {encabezado[:50]}...")
+        print(f"⏭ Omitido (no es orden público): {encabezado[:55]}...")
         return
 
-    id_sufijo = f"bot_{hashlib.sha256(url_fuente.encode('utf-8')).hexdigest()[:14]}"
+    id_sufijo = f"bot_{hashlib.sha256(url_fuente.encode('utf-8')).hexdigest()[:12]}"
+    noticia_uri = f"http://proyecto-noticias.org/news/{id_sufijo}"
+
+    if ya_existe_en_fuseki(noticia_uri):
+        print(f"⏭ Ya existe en Fuseki: {encabezado[:50]}...")
+        return
 
     if isinstance(fecha_publicacion, time.struct_time):
-        fecha_iso = datetime(*fecha_publicacion[:6]).isoformat()
+        fecha_iso = datetime(*fecha_publicacion[:6]).strftime("%Y-%m-%dT%H:%M:%S")
     elif isinstance(fecha_publicacion, datetime):
-        fecha_iso = fecha_publicacion.isoformat()
+        fecha_iso = fecha_publicacion.strftime("%Y-%m-%dT%H:%M:%S")
     else:
-        fecha_iso = datetime.utcnow().isoformat()
+        fecha_iso = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
 
-    payload = {
-        "id_sufijo": id_sufijo,
-        "titulo": encabezado.strip(),
-        "cuerpo": (resumen.strip() if resumen and len(resumen.strip()) > 0 else encabezado.strip()),
-        "fuente": fuente_nombre,
-        "fecha_publicacion": fecha_iso,
-        "fecha_actualizacion": None,
-        "materia_uri": materia_uri,
-        "eventos": []
-    }
+    titulo_limpio = escapar_sparql(encabezado.strip())
+    cuerpo_limpio = escapar_sparql(resumen.strip() if resumen and resumen.strip() else encabezado.strip())
+    fuente_limpia = escapar_sparql(fuente_nombre)
 
-    if not token_actual:
-        obtener_token()
+    # Mismo formato exacto INSERT DATA que subiste manualmente a Fuseki
+    sparql_insert = f"""
+    PREFIX core: <http://proyecto-noticias.org/core#>
+    PREFIX schema: <http://schema.org/>
+    PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 
-    headers = {
-        "Authorization": f"Bearer {token_actual}",
-        "Content-Type": "application/json"
-    }
+    INSERT DATA {{
+      GRAPH <http://proyecto-noticias.org/graph/news> {{
+        <{noticia_uri}> a schema:NewsArticle ;
+            schema:headline \"\"\"{titulo_limpio}\"\"\" ;
+            schema:articleBody \"\"\"{cuerpo_limpio}\"\"\" ;
+            schema:publisher \"\"\"{fuente_limpia}\"\"\" ;
+            schema:datePublished "{fecha_iso}"^^xsd:dateTime ;
+            core:tieneMateria <{materia_uri}> .
+      }}
+    }}
+    """
 
     try:
-        resp = session.post(f"{BACKEND_URL}/api/noticias", json=payload, headers=headers, timeout=8)
-
-        # Si el token expiró, renovar e intentar una vez
-        if resp.status_code == 401:
-            obtener_token()
-            headers["Authorization"] = f"Bearer {token_actual}"
-            resp = session.post(f"{BACKEND_URL}/api/noticias", json=payload, headers=headers, timeout=8)
-
-        if resp.status_code == 200:
-            print(f"✔ Guardado en Fuseki: {encabezado[:48]}... [{cat_nombre}]")
-        elif resp.status_code == 400:
-            print(f"⏭ Duplicado o ya existente: {encabezado[:48]}...")
+        resp = session.post(
+            FUSEKI_UPDATE_URL,
+            data=sparql_insert.encode("utf-8"),
+            headers={"Content-Type": "application/sparql-update"},
+            auth=FUSEKI_AUTH,
+            timeout=8
+        )
+        if resp.status_code in (200, 204):
+            print(f"✔ Guardado en Fuseki (3030): {encabezado[:50]}... [{cat_nombre}]")
+        else:
+            print(f"✘ Error Fuseki ({resp.status_code}): {resp.text[:120]}")
     except Exception as e:
-        print(f"✘ Error al guardar: {encabezado[:40]} | {e}")
+        print(f"✘ Error conectando a Fuseki (3030): {e}")
 
 # ==========================================
-# PROCESAMIENTO DE FUENTES
+# LECTURA DE FUENTES RSS Y SCRAPING
 # ==========================================
 def procesar_rss(fuente):
     try:
@@ -263,7 +260,7 @@ def procesar_rss(fuente):
         for item in items:
             raw_summary = getattr(item, "summary", "") or getattr(item, "description", "")
             resumen_limpio = BeautifulSoup(raw_summary, "html.parser").get_text()[:400]
-            fecha = getattr(item, "published_parsed", None) or getattr(item, "updated_parsed", None) or datetime.utcnow()
+            fecha = getattr(item, "published_parsed", None) or getattr(item, "updated_parsed", None)
             guardar_titular(item.title, resumen_limpio, item.link, fecha, fuente["nombre"])
     except Exception as e:
         print(f"✘ Error al procesar RSS {fuente['nombre']}: {e}")
@@ -296,15 +293,12 @@ def scrapear_alerta_bogota(fuente):
             except Exception:
                 pass
 
-            guardar_titular(item["titulo"], resumen, item["link"], datetime.utcnow(), fuente["nombre"])
+            guardar_titular(item["titulo"], resumen, item["link"], None, fuente["nombre"])
     except Exception as e:
         print(f"✘ Error al scrapear {fuente['nombre']}: {e}")
 
-# ==========================================
-# EJECUCIÓN PROGRAMADA
-# ==========================================
 def ejecutar_barrido():
-    print(f"\n[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Iniciando barrido completo...")
+    print(f"\n[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Iniciando barrido directo hacia Fuseki (3030)...")
     for f in FUENTES:
         if f["tipo"] == "rss":
             procesar_rss(f)
@@ -313,7 +307,7 @@ def ejecutar_barrido():
     print(f"\n[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Barrido completado.")
 
 if __name__ == "__main__":
-    print("Bot de Ingesta en Python iniciado.")
+    print("Bot de Ingesta RDF iniciado.")
     ejecutar_barrido()
 
     schedule.every().day.at("07:00").do(ejecutar_barrido)

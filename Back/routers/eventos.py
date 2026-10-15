@@ -471,3 +471,20 @@ async def detalle_entidad_grafo(uri: str = Query(...)):
         "propiedades": propiedades,
         "conexiones_entrantes": entrantes,
     }
+# ==========================================
+# 5. RELACIONAR EVENTO EXISTENTE A UN TITULAR
+# ==========================================
+@router.post("/api/noticias/{id_titular}/relacionar-evento/{id_evento}")
+async def relacionar_evento_existente(id_titular: str, id_evento: str):
+    noticia_uri = f"http://proyecto-noticias.org/news/{id_titular}"
+    ev_uri = f"http://proyecto-noticias.org/events/{id_evento}"
+
+    sparql_update = f"""
+    INSERT DATA {{
+        GRAPH <http://proyecto-noticias.org/graph/news> {{
+            <{noticia_uri}> <http://proyecto-noticias.org/core#relataEvento> <{ev_uri}> .
+        }}
+    }}
+    """
+    await fuseki_client.execute_update(sparql_update)
+    return {"message": "Evento vinculado exitosamente al titular"}

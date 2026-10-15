@@ -7,10 +7,14 @@ import "./IndexacionPage.css";
 const API_BASE = "http://localhost:8000/api";
 
 function IndexacionPage({ usuario }) {
-  const { id } = useParams();
+  const { id } = useParams(); // ID del titular
   const navigate = useNavigate();
+
   const [titular, setTitular] = useState(null);
   const [eventos, setEventos] = useState([]);
+  const [todosEventos, setTodosEventos] = useState([]);
+  const [eventoSeleccionado, setEventoSeleccionado] = useState("");
+  const [cargando, setCargando] = useState(true);
 
   const usuarioSesion = useMemo(() => {
     if (usuario) return usuario;
@@ -22,12 +26,9 @@ function IndexacionPage({ usuario }) {
     }
   }, [usuario]);
 
-  const rolUsuario = (usuarioSesion?.rol || "administrador").toString().trim().toLowerCase();
-  const esIndexador = rolUsuario === "indexador";
-  const puedeCrearEventos = !esIndexador || !!usuarioSesion?.permiso_crear_eventos;
-  const puedeBuscarEvento = true;
-
-  useEffect(() => {
+  // Cargar datos del titular y eventos vinculados
+  const cargarDatos = () => {
+    setCargando(true);
     fetch(`${API_BASE}/noticias/${id}`)
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
@@ -37,9 +38,54 @@ function IndexacionPage({ usuario }) {
 
     fetch(`${API_BASE}/eventos/por-titular/${id}`)
       .then((res) => res.json())
-      .then((data) => setEventos(Array.isArray(data) ? data : []))
-      .catch((err) => console.error("Error al obtener eventos:", err));
+      .then((data) => {
+        setEventos(Array.isArray(data) ? data : []);
+        setCargando(false);
+      })
+      .catch((err) => {
+        console.error("Error al obtener eventos:", err);
+        setCargando(false);
+      });
+
+    // Cargar todos los eventos disponibles para el selector de vinculación rápida
+    fetch(`${API_BASE}/eventos`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data)) setTodosEventos(data);
+      })
+      .catch((err) => console.error("Error al cargar lista de eventos:", err));
+  };
+
+  useEffect(() => {
+    cargarDatos();
   }, [id]);
+
+  // Vincular un evento existente al titular actual
+  const handleVincularExistente = async () => {
+    if (!eventoSeleccionado) {
+      alert("Por favor selecciona un evento de la lista.");
+      return;
+    }
+
+    try {
+      const resp = await fetch(
+        `${API_BASE}/noticias/${id}/relacionar-evento/${eventoSeleccionado}`,
+        { method: "POST" }
+      );
+      if (resp.ok) {
+        alert("¡Evento relacionado exitosamente con el titular!");
+        setEventoSeleccionado("");
+        cargarDatos(); // Recargar para ver el estado OK
+      } else {
+        alert("No se pudo relacionar el evento.");
+      }
+    } catch (err) {
+      console.error("Error al relacionar evento:", err);
+      alert("Error de conexión con el backend.");
+    }
+  };
+
+  const esOk = eventos.length > 0;
 
   return (
     <div className="page-container">
@@ -50,8 +96,11 @@ function IndexacionPage({ usuario }) {
       />
 
       <div className="content-area">
-        <header className="page-header-title">
-          <h2>INDEXACIÓN DE TITULARES (REVISIÓN TITULAR - EVENTOS)</h2>
+        <header className="page-header-title" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <h2>INDEXACIÓN DE TITULARES (HOLDING)</h2>
+          <span className={`badge-estado ${esOk ? "ok" : "pend"}`} style={{ fontSize: "14px", padding: "8px 16px" }}>
+            ESTADO: {esOk ? "OK (INDEXADO)" : "PEND (PENDIENTE)"}
+          </span>
         </header>
 
         <div className="indexacion-card">
@@ -91,23 +140,52 @@ function IndexacionPage({ usuario }) {
             </div>
           </div>
 
+          {/* SECCIÓN DE VINCULACIÓN RÁPIDA DE EVENTOS */}
+          <div className="field-section" style={{ background: "#f8fafc", padding: "16px", borderRadius: "14px", border: "1px solid #e2e8f0" }}>
+            <label className="section-label" style={{ marginBottom: "8px" }}>VINCULAR EVENTO EXISTENTE AL TITULAR</label>
+            <div style={{ display: "flex", gap: "12px" }}>
+              <select
+                className="select-full-styled"
+                value={eventoSeleccionado}
+                onChange={(e) => setEventoSeleccionado(e.target.value)}
+                style={{ flex: 1 }}
+              >
+                <option value="">Selecciona un evento registrado...</option>
+                {todosEventos.map((ev) => (
+                  <option key={ev._id || ev.id} value={ev._id || ev.id}>
+                    {ev.titulo || ev.resumen_evento || "Evento sin título"} ({ev.municipio || "Bogotá"})
+                  </option>
+                ))}
+              </select>
+              <button className="btn-secondary" onClick={handleVincularExistente}>
+                VINCULAR
+              </button>
+            </div>
+          </div>
+
           <div className="eventos-section">
             <h3>EVENTOS VINCULADOS ({eventos.length})</h3>
 
             <table className="eventos-table">
               <thead>
                 <tr>
-                  <th>FECHA</th>
+                  <th style={{ width: "120px" }}>FECHA</th>
                   <th>RESUMEN DEL EVENTO</th>
-                  <th>MATERIA / ESTADO</th>
-                  <th>MUNICIPIO / LUGAR</th>
+                  <th style={{ width: "160px" }}>MATERIA / ESTADO</th>
+                  <th style={{ width: "160px" }}>MUNICIPIO / LUGAR</th>
                 </tr>
               </thead>
               <tbody>
-                {eventos.length === 0 ? (
+                {cargando ? (
+                  <tr>
+                    <td colSpan={4} style={{ textAlign: "center", padding: "20px", color: "#64748b" }}>
+                      Cargando eventos desde Fuseki...
+                    </td>
+                  </tr>
+                ) : eventos.length === 0 ? (
                   <tr>
                     <td colSpan={4} style={{ textAlign: "center", padding: "24px", color: "#64748b" }}>
-                      Este titular aún no tiene eventos catalogados (Estado: PEND). Haz clic en "CREAR EVENTO" para indexarlo.
+                      Este titular no tiene eventos relacionados todavía. Crea un evento nuevo o vincula uno existente arriba.
                     </td>
                   </tr>
                 ) : (
@@ -122,7 +200,7 @@ function IndexacionPage({ usuario }) {
                         <textarea defaultValue={ev.resumen || ev.resumen_evento || ""} readOnly />
                       </td>
                       <td>
-                        <div className="tag">{ev.estado || "REG"}</div>
+                        <div className="tag">{ev.estado || ev.categoria || "REG"}</div>
                       </td>
                       <td>
                         <div className="tag">
@@ -136,25 +214,22 @@ function IndexacionPage({ usuario }) {
             </table>
           </div>
 
-          <div className="action-buttons-end">
+          <div className="action-buttons-end" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <button className="btn-secondary" onClick={() => navigate("/titulares")}>
               &larr; Volver a Titulares
             </button>
 
-            {puedeBuscarEvento && (
-              <button className="btn-secondary" onClick={() => navigate("/buscar-evento")}>
-                BUSCAR EVENTO EXISTENTE
+            <div style={{ display: "flex", gap: "12px" }}>
+              <button className="btn-secondary" onClick={cargarDatos}>
+                ACTUALIZAR / INDEXAR
               </button>
-            )}
-
-            {puedeCrearEventos && (
               <button
                 className="btn-primary-dark"
                 onClick={() => navigate(`/crear-evento/${id}`)}
               >
-                + CREAR EVENTO
+                + CREAR NUEVO EVENTO
               </button>
-            )}
+            </div>
           </div>
         </div>
       </div>
