@@ -55,15 +55,17 @@ async def obtener_titular_por_id(id_sufijo: str):
     PREFIX schema: <http://schema.org/>
     PREFIX core: <http://proyecto-noticias.org/core#>
 
-    SELECT ?encabezado ?cuerpo ?fuente ?fechaPub ?materiaUri
+    SELECT ?encabezado ?cuerpo ?fuente ?fechaPub ?fechaMod ?materiaUri ?estadoIdx
     WHERE {{
         GRAPH <{GRAPH_NEWS}> {{
             <{uri}> a schema:NewsArticle ;
-                    schema:headline ?encabezado ;
-                    schema:articleBody ?cuerpo ;
-                    schema:publisher ?fuente ;
-                    schema:datePublished ?fechaPub .
+                    schema:headline ?encabezado .
+            OPTIONAL {{ <{uri}> schema:articleBody ?cuerpo . }}
+            OPTIONAL {{ <{uri}> schema:publisher ?fuente . }}
+            OPTIONAL {{ <{uri}> schema:datePublished ?fechaPub . }}
+            OPTIONAL {{ <{uri}> schema:dateModified ?fechaMod . }}
             OPTIONAL {{ <{uri}> core:tieneMateria ?materiaUri . }}
+            OPTIONAL {{ <{uri}> core:estadoIndexacion ?estadoIdx . }}
         }}
     }}
     LIMIT 1
@@ -74,20 +76,23 @@ async def obtener_titular_por_id(id_sufijo: str):
         raise HTTPException(status_code=404, detail="Titular no encontrado")
 
     b = bindings[0]
+    fecha_pub = b.get("fechaPub", {}).get("value", "")
+    fecha_mod = b.get("fechaMod", {}).get("value", fecha_pub)
     return {
         "_id": id_sufijo,
         "uri": uri,
         "encabezado": b["encabezado"]["value"],
-        "resumen": b["cuerpo"]["value"],
-        "url_fuente": b["fuente"]["value"],
-        "fuente": b["fuente"]["value"],
-        "fecha_publicacion": b["fechaPub"]["value"],
-        "fecha_creacion": b["fechaPub"]["value"],
+        "resumen": b.get("cuerpo", {}).get("value", ""),
+        "url_fuente": b.get("fuente", {}).get("value", ""),
+        "fuente": b.get("fuente", {}).get("value", ""),
+        "fecha_publicacion": fecha_pub,
+        "fecha_creacion": fecha_mod,
+        "estado": b.get("estadoIdx", {}).get("value", "Pendiente"),
     }
 
 
 # ==========================================
-# 2. LISTAR EVENTOS (TODOS O POR TITULAR)
+# 2. LISTAR EVENTOS CON TODOS SUS TITULARES ENLAZADOS
 # ==========================================
 @router.get("/api/eventos")
 async def listar_todos_eventos():
@@ -95,7 +100,7 @@ async def listar_todos_eventos():
     PREFIX core: <http://proyecto-noticias.org/core#>
     PREFIX schema: <http://schema.org/>
 
-    SELECT ?evUri ?titulo ?resumen ?municipio ?subdivision ?complemento ?categoria ?fecha ?noticiaUri
+    SELECT ?evUri ?titulo ?resumen ?municipio ?subdivision ?complemento ?categoria ?fecha ?noticiaUri ?noticiaTitulo ?noticiaFuente
     WHERE {{
         GRAPH <{GRAPH_NEWS}> {{
             ?evUri a core:Evento ;
@@ -106,7 +111,11 @@ async def listar_todos_eventos():
             OPTIONAL {{ ?evUri core:complemento ?complemento . }}
             OPTIONAL {{ ?evUri core:categoriaTexto ?categoria . }}
             OPTIONAL {{ ?evUri schema:dateCreated ?fecha . }}
-            OPTIONAL {{ ?noticiaUri core:relataEvento ?evUri . }}
+            OPTIONAL {{
+                ?noticiaUri core:relataEvento ?evUri .
+                OPTIONAL {{ ?noticiaUri schema:headline ?noticiaTitulo . }}
+                OPTIONAL {{ ?noticiaUri schema:publisher ?noticiaFuente . }}
+            }}
         }}
     }}
     ORDER BY DESC(?fecha)
@@ -114,53 +123,67 @@ async def listar_todos_eventos():
     res = await fuseki_client.execute_query(sparql)
     bindings = res.get("results", {}).get("bindings", [])
 
-    eventos = []
-    vistos = set()
+    eventos_map = {}
     for b in bindings:
         ev_uri = b["evUri"]["value"]
-        if ev_uri in vistos:
-            continue
-        vistos.add(ev_uri)
-
         ev_id = ev_uri.split("/")[-1]
+
         noticia_uri = b.get("noticiaUri", {}).get("value", "")
-        id_titular = noticia_uri.split("/")[-1] if noticia_uri else ev_id
+        id_titular = noticia_uri.split("/")[-1] if noticia_uri else None
+        noticia_titulo = b.get("noticiaTitulo", {}).get("value", id_titular or "")
+        noticia_fuente = b.get("noticiaFuente", {}).get("value", "")
 
-        muni = b.get("municipio", {}).get("value", "Bogotá D.C.")
-        subdiv = b.get("subdivision", {}).get("value", "")
-        comp = b.get("complemento", {}).get("value", "")
-        cat = b.get("categoria", {}).get("value", "REG")
-        fecha = b.get("fecha", {}).get("value", datetime.utcnow().isoformat())
+        if ev_uri not in eventos_map:
+            muni = b.get("municipio", {}).get("value", "Bogotá D.C.")
+            subdiv = b.get("subdivision", {}).get("value", "")
+            comp = b.get("complemento", {}).get("value", "")
+            cat = b.get("categoria", {}).get("value", "REG")
+            fecha = b.get("fecha", {}).get("value", datetime.utcnow().isoformat())
 
-        eventos.append({
-            "_id": ev_id,
-            "id": ev_id,
-            "uri": ev_uri,
-            "id_titular": id_titular,
-            "titulo": b["titulo"]["value"],
-            "titulo_recurso": b["titulo"]["value"],
-            "resumen": b.get("resumen", {}).get("value", ""),
-            "resumen_evento": b.get("resumen", {}).get("value", ""),
-            "estado": cat,
-            "categoria": cat,
-            "municipio": muni,
-            "subdivision": subdiv,
-            "direccion_hecho": {
-                "ciudad": muni,
-                "localidad": subdiv or muni,
-                "barrio": comp,
-            },
-            "fecha_creacion": fecha,
-            "fecha": fecha,
-        })
+            eventos_map[ev_uri] = {
+                "_id": ev_id,
+                "id": ev_id,
+                "uri": ev_uri,
+                "id_titular": id_titular or ev_id,
+                "ids_titulares": [],
+                "titulares_relacionados": [],
+                "titulo": b["titulo"]["value"],
+                "titulo_recurso": b["titulo"]["value"],
+                "resumen": b.get("resumen", {}).get("value", ""),
+                "resumen_evento": b.get("resumen", {}).get("value", ""),
+                "estado": cat,
+                "categoria": cat,
+                "municipio": muni,
+                "subdivision": subdiv,
+                "direccion_hecho": {
+                    "ciudad": muni,
+                    "localidad": subdiv or muni,
+                    "barrio": comp,
+                },
+                "fecha_creacion": fecha,
+                "fecha": fecha,
+            }
 
-    return eventos
+        # Agregar todos los titulares que apuntan a este mismo evento en el grafo
+        if id_titular and id_titular not in eventos_map[ev_uri]["ids_titulares"]:
+            eventos_map[ev_uri]["ids_titulares"].append(id_titular)
+            eventos_map[ev_uri]["titulares_relacionados"].append({
+                "id": id_titular,
+                "uri": noticia_uri,
+                "encabezado": noticia_titulo,
+                "fuente": noticia_fuente,
+            })
+
+    return list(eventos_map.values())
 
 
 @router.get("/api/eventos/por-titular/{id_titular}")
 async def listar_eventos_por_titular(id_titular: str):
     todos = await listar_todos_eventos()
-    return [e for e in todos if e.get("id_titular") == id_titular]
+    return [
+        e for e in todos
+        if id_titular in e.get("ids_titulares", []) or e.get("id_titular") == id_titular
+    ]
 
 
 @router.get("/api/eventos/{id_evento}")
@@ -236,7 +259,6 @@ async def persistir_evento_fuseki(ev_id: str, data: EventoPayload):
 
     ahora = datetime.utcnow().isoformat()
 
-    # Respaldo estructurado para recarga exacta en edición
     snapshot = {
         "fechaCatalogacion": data.fechaCatalogacion or datetime.utcnow().strftime("%d/%m/%Y"),
         "titulo": titulo,
@@ -264,12 +286,11 @@ async def persistir_evento_fuseki(ev_id: str, data: EventoPayload):
         f"<{ev_uri}> <http://proyecto-noticias.org/core#payloadJson> {format_literal(json.dumps(snapshot, ensure_ascii=False))} .",
     ]
 
-    # Enlazar con el Titular para que pase de PEND a OK automáticamente
+    # Enlazar con el Titular sin cambiar todavía a OK (espera al botón INDEXAR)
     if data.id_titular:
         noticia_uri = f"{BASE_NEWS}/{data.id_titular}"
         triples.append(f"<{noticia_uri}> <http://proyecto-noticias.org/core#relataEvento> <{ev_uri}> .")
 
-    # Enlazar agentes vinculados (Afectados y Victimarios)
     agentes_totales = list(data.agentes_vinculados or [])
     for af in (data.afectados or []):
         if af.get("nombre"):
@@ -317,16 +338,70 @@ async def actualizar_evento(id_evento: str, data: EventoPayload):
 
 
 # ==========================================
-# 4. BUSCADOR FUSEKI Y ESTADÍSTICAS DEL GRAFO
+# 4. HOLDING Y BOTÓN INDEXAR / ACTUALIZAR
+# ==========================================
+@router.post("/api/noticias/{id_titular}/relacionar-evento/{id_evento}")
+async def relacionar_evento_existente(id_titular: str, id_evento: str):
+    """Enlaza un evento existente a otro titular mediante HOLDING conservando los enlaces previos."""
+    noticia_uri = f"{BASE_NEWS}/{id_titular}"
+    ev_uri = f"{BASE_EVENT}/{id_evento}"
+
+    sparql_update = f"""
+    DELETE WHERE {{
+        GRAPH <{GRAPH_NEWS}> {{
+            <{noticia_uri}> <http://proyecto-noticias.org/core#estadoIndexacion> ?oldEstado .
+        }}
+    }};
+    INSERT DATA {{
+        GRAPH <{GRAPH_NEWS}> {{
+            <{noticia_uri}> <http://proyecto-noticias.org/core#relataEvento> <{ev_uri}> .
+            <{noticia_uri}> <http://proyecto-noticias.org/core#estadoIndexacion> "Pendiente" .
+        }}
+    }}
+    """
+    await fuseki_client.execute_update(sparql_update)
+    return {"message": "Evento enlazado al titular en Holding"}
+
+
+@router.post("/api/noticias/{id_titular}/indexar")
+async def indexar_titular_definitivo(id_titular: str):
+    """Cambia oficialmente el estado del titular a OK cuando el usuario presiona INDEXAR / ACTUALIZAR."""
+    noticia_uri = f"{BASE_NEWS}/{id_titular}"
+    ahora = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S")
+
+    sparql_update = f"""
+    DELETE WHERE {{
+        GRAPH <{GRAPH_NEWS}> {{
+            <{noticia_uri}> <http://proyecto-noticias.org/core#estadoIndexacion> ?oldEstado .
+        }}
+    }};
+    DELETE WHERE {{
+        GRAPH <{GRAPH_NEWS}> {{
+            <{noticia_uri}> <http://schema.org/dateModified> ?oldMod .
+        }}
+    }};
+    INSERT DATA {{
+        GRAPH <{GRAPH_NEWS}> {{
+            <{noticia_uri}> <http://proyecto-noticias.org/core#estadoIndexacion> "OK" .
+            <{noticia_uri}> <http://schema.org/dateModified> "{ahora}"^^<http://www.w3.org/2001/XMLSchema#dateTime> .
+        }}
+    }}
+    """
+    await fuseki_client.execute_update(sparql_update)
+    return {"message": "Titular indexado con estado OK", "estado": "OK", "fecha_actualizacion": ahora}
+
+
+# ==========================================
+# 5. BUSCADOR FUSEKI Y ESTADÍSTICAS DEL GRAFO
 # ==========================================
 @router.get("/api/grafo/estadisticas")
 async def estadisticas_grafo():
     sparql = """
     SELECT ?clase (COUNT(DISTINCT ?s) AS ?total)
     WHERE {
-        GRAPH ?g {
-            ?s a ?clase .
-        }
+        { ?s a ?clase . }
+        UNION
+        { GRAPH ?g { ?s a ?clase . } }
     }
     GROUP BY ?clase
     """
@@ -349,29 +424,41 @@ async def buscar_en_grafo(
     q: Optional[str] = Query(None),
     tipo: Optional[str] = Query(None)
 ):
-    filtro_texto = ""
-    if q:
-        filtro_texto = f'FILTER(REGEX(STR(?nombre), "{q}", "i"))'
-
-    filtro_tipo = ""
-    if tipo:
-        filtro_tipo = f'FILTER(REGEX(STR(?clase), "{tipo}", "i"))'
+    filtro_texto = f'FILTER(REGEX(STR(?nombre), "{q}", "i"))' if q else ""
+    filtro_tipo = f'FILTER(REGEX(STR(?clase), "{tipo}", "i"))' if tipo else ""
 
     sparql = f"""
     PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+    PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
     PREFIX schema: <http://schema.org/>
     PREFIX core: <http://proyecto-noticias.org/core#>
 
     SELECT DISTINCT ?uri ?clase ?nombre
     WHERE {{
-        GRAPH ?g {{
+        {{
             ?uri a ?clase .
             OPTIONAL {{ ?uri skos:prefLabel ?l1 . }}
-            OPTIONAL {{ ?uri schema:headline ?l2 . }}
-            OPTIONAL {{ ?uri core:tituloEvento ?l3 . }}
-            BIND(COALESCE(?l1, ?l2, ?l3, STR(?uri)) AS ?nombre)
+            OPTIONAL {{ ?uri skos:preferLabel ?l2 . }}
+            OPTIONAL {{ ?uri rdfs:label ?l3 . }}
+            OPTIONAL {{ ?uri schema:headline ?l4 . }}
+            OPTIONAL {{ ?uri core:tituloEvento ?l5 . }}
+            BIND(COALESCE(?l1, ?l2, ?l3, ?l4, ?l5, STR(?uri)) AS ?nombre)
             {filtro_texto}
             {filtro_tipo}
+        }}
+        UNION
+        {{
+            GRAPH ?g {{
+                ?uri a ?clase .
+                OPTIONAL {{ ?uri skos:prefLabel ?l1 . }}
+                OPTIONAL {{ ?uri skos:preferLabel ?l2 . }}
+                OPTIONAL {{ ?uri rdfs:label ?l3 . }}
+                OPTIONAL {{ ?uri schema:headline ?l4 . }}
+                OPTIONAL {{ ?uri core:tituloEvento ?l5 . }}
+                BIND(COALESCE(?l1, ?l2, ?l3, ?l4, ?l5, STR(?uri)) AS ?nombre)
+                {filtro_texto}
+                {filtro_tipo}
+            }}
         }}
     }}
     LIMIT 80
@@ -380,10 +467,15 @@ async def buscar_en_grafo(
     bindings = res.get("results", {}).get("bindings", [])
 
     resultados = []
+    vistos = set()
     for b in bindings:
+        u = b["uri"]["value"]
+        if u in vistos:
+            continue
+        vistos.add(u)
         clase_etiqueta = b["clase"]["value"].split("#")[-1].split("/")[-1]
         resultados.append({
-            "uri": b["uri"]["value"],
+            "uri": u,
             "tipo_etiqueta": clase_etiqueta,
             "nombre": b["nombre"]["value"],
         })
@@ -393,41 +485,66 @@ async def buscar_en_grafo(
 
 @router.get("/api/grafo/entidad")
 async def detalle_entidad_grafo(uri: str = Query(...)):
-    # Propiedades salientes
     sparql_out = f"""
     PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+    PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
     PREFIX schema: <http://schema.org/>
     PREFIX core: <http://proyecto-noticias.org/core#>
 
     SELECT ?p ?o ?oLabel
     WHERE {{
-        GRAPH ?g {{
-            <{uri}> ?p ?o .
-        }}
+        {{ <{uri}> ?p ?o . }}
+        UNION
+        {{ GRAPH ?g {{ <{uri}> ?p ?o . }} }}
         OPTIONAL {{
-            GRAPH ?g2 {{
+            {{
                 OPTIONAL {{ ?o skos:prefLabel ?l1 . }}
-                OPTIONAL {{ ?o schema:headline ?l2 . }}
-                OPTIONAL {{ ?o core:tituloEvento ?l3 . }}
-                BIND(COALESCE(?l1, ?l2, ?l3) AS ?oLabel)
+                OPTIONAL {{ ?o skos:preferLabel ?l2 . }}
+                OPTIONAL {{ ?o rdfs:label ?l3 . }}
+                OPTIONAL {{ ?o schema:headline ?l4 . }}
+                OPTIONAL {{ ?o core:tituloEvento ?l5 . }}
+                BIND(COALESCE(?l1, ?l2, ?l3, ?l4, ?l5) AS ?oLabel)
+            }}
+            UNION
+            {{
+                GRAPH ?g2 {{
+                    OPTIONAL {{ ?o skos:prefLabel ?l1 . }}
+                    OPTIONAL {{ ?o skos:preferLabel ?l2 . }}
+                    OPTIONAL {{ ?o rdfs:label ?l3 . }}
+                    OPTIONAL {{ ?o schema:headline ?l4 . }}
+                    OPTIONAL {{ ?o core:tituloEvento ?l5 . }}
+                    BIND(COALESCE(?l1, ?l2, ?l3, ?l4, ?l5) AS ?oLabel)
+                }}
             }}
         }}
     }}
     """
-    # Conexiones entrantes
     sparql_in = f"""
     PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+    PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
     PREFIX schema: <http://schema.org/>
     PREFIX core: <http://proyecto-noticias.org/core#>
 
-    SELECT ?s ?p ?sLabel
+    SELECT DISTINCT ?s ?p ?sLabel
     WHERE {{
-        GRAPH ?g {{
+        {{
             ?s ?p <{uri}> .
             OPTIONAL {{ ?s skos:prefLabel ?l1 . }}
-            OPTIONAL {{ ?s schema:headline ?l2 . }}
-            OPTIONAL {{ ?s core:tituloEvento ?l3 . }}
-            BIND(COALESCE(?l1, ?l2, ?l3, STR(?s)) AS ?sLabel)
+            OPTIONAL {{ ?s rdfs:label ?l2 . }}
+            OPTIONAL {{ ?s schema:headline ?l3 . }}
+            OPTIONAL {{ ?s core:tituloEvento ?l4 . }}
+            BIND(COALESCE(?l1, ?l2, ?l3, ?l4, STR(?s)) AS ?sLabel)
+        }}
+        UNION
+        {{
+            GRAPH ?g {{
+                ?s ?p <{uri}> .
+                OPTIONAL {{ ?s skos:prefLabel ?l1 . }}
+                OPTIONAL {{ ?s rdfs:label ?l2 . }}
+                OPTIONAL {{ ?s schema:headline ?l3 . }}
+                OPTIONAL {{ ?s core:tituloEvento ?l4 . }}
+                BIND(COALESCE(?l1, ?l2, ?l3, ?l4, STR(?s)) AS ?sLabel)
+            }}
         }}
     }}
     """
@@ -446,7 +563,7 @@ async def detalle_entidad_grafo(uri: str = Query(...)):
         obj_val = b["o"]["value"]
         obj_type = b["o"]["type"]
 
-        if pred_short in ("prefLabel", "headline", "tituloEvento"):
+        if pred_short in ("prefLabel", "preferLabel", "label", "headline", "tituloEvento"):
             label_principal = obj_val
 
         propiedades.append({
@@ -471,20 +588,3 @@ async def detalle_entidad_grafo(uri: str = Query(...)):
         "propiedades": propiedades,
         "conexiones_entrantes": entrantes,
     }
-# ==========================================
-# 5. RELACIONAR EVENTO EXISTENTE A UN TITULAR
-# ==========================================
-@router.post("/api/noticias/{id_titular}/relacionar-evento/{id_evento}")
-async def relacionar_evento_existente(id_titular: str, id_evento: str):
-    noticia_uri = f"http://proyecto-noticias.org/news/{id_titular}"
-    ev_uri = f"http://proyecto-noticias.org/events/{id_evento}"
-
-    sparql_update = f"""
-    INSERT DATA {{
-        GRAPH <http://proyecto-noticias.org/graph/news> {{
-            <{noticia_uri}> <http://proyecto-noticias.org/core#relataEvento> <{ev_uri}> .
-        }}
-    }}
-    """
-    await fuseki_client.execute_update(sparql_update)
-    return {"message": "Evento vinculado exitosamente al titular"}

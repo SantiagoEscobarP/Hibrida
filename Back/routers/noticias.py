@@ -112,6 +112,7 @@ async def listar_titulares():
                 ?noticiaUri core:relataEvento ?eventoUri .
                 OPTIONAL { ?eventoUri core:municipioTexto ?municipioLabel . }
             }
+            OPTIONAL { ?noticiaUri core:estadoIndexacion ?estadoIdx . }
         }
         OPTIONAL {
             {
@@ -172,7 +173,11 @@ async def listar_titulares():
         )
 
         tiene_evento = "eventoUri" in b
-        estado_calc = "OK" if tiene_evento else "Pendiente"
+        estado_explicito = b.get("estadoIdx", {}).get("value")
+        if estado_explicito:
+            estado_calc = estado_explicito
+        else:
+            estado_calc = "OK" if tiene_evento else "Pendiente"
         municipio_label = b.get("municipioLabel", {}).get("value", "Bogotá D.C.")
 
         encabezado_val = b.get("encabezado", {}).get("value", "Sin título")
