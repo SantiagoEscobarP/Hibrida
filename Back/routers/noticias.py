@@ -97,31 +97,35 @@ async def listar_titulares():
     PREFIX schema: <http://schema.org/>
     PREFIX core: <http://proyecto-noticias.org/core#>
     PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+    PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 
     SELECT ?noticiaUri ?encabezado ?cuerpo ?fuente ?fechaPub ?materiaUri ?materiaLabel ?eventoUri ?municipioLabel
     WHERE {
         GRAPH <http://proyecto-noticias.org/graph/news> {
             ?noticiaUri a schema:NewsArticle ;
-                        schema:headline ?encabezado ;
-                        schema:articleBody ?cuerpo ;
-                        schema:publisher ?fuente ;
-                        schema:datePublished ?fechaPub .
-            
+                        schema:headline ?encabezado .
+            OPTIONAL { ?noticiaUri schema:articleBody ?cuerpo . }
+            OPTIONAL { ?noticiaUri schema:publisher ?fuente . }
+            OPTIONAL { ?noticiaUri schema:datePublished ?fechaPub . }
             OPTIONAL { ?noticiaUri core:tieneMateria ?materiaUri . }
             OPTIONAL {
                 ?noticiaUri core:relataEvento ?eventoUri .
-                OPTIONAL { ?eventoUri core:municipio ?municipioUri . }
+                OPTIONAL { ?eventoUri core:municipioTexto ?municipioLabel . }
             }
         }
         OPTIONAL {
-            GRAPH <http://proyecto-noticias.org/graph/authorities> {
-                ?materiaUri skos:prefLabel ?materiaLabel .
+            {
+                OPTIONAL { ?materiaUri skos:prefLabel ?ml1 . }
+                OPTIONAL { ?materiaUri skos:preferLabel ?ml2 . }
             }
-        }
-        OPTIONAL {
-            GRAPH <http://proyecto-noticias.org/graph/authorities> {
-                ?municipioUri skos:prefLabel ?municipioLabel .
+            UNION
+            {
+                GRAPH ?gMat {
+                    OPTIONAL { ?materiaUri skos:prefLabel ?ml1 . }
+                    OPTIONAL { ?materiaUri skos:preferLabel ?ml2 . }
+                }
             }
+            BIND(COALESCE(?ml1, ?ml2) AS ?materiaLabel)
         }
     }
     ORDER BY DESC(?fechaPub)
@@ -130,42 +134,75 @@ async def listar_titulares():
     res = await fuseki_client.execute_query(sparql_query)
     bindings = res.get("results", {}).get("bindings", [])
 
+    nombres_materias_fallback = {
+        "mat_hurto": "Hurto",
+        "Hurto": "Hurto",
+        "Robo": "Robo",
+        "mat_homicidio": "Homicidio",
+        "Homicidio": "Homicidio",
+        "AsesinatoSelectivo": "Asesinato selectivo",
+        "mat_atentado": "Atentados terroristas",
+        "AtentadosTerroristas": "Atentados terroristas",
+        "Terrorismo": "Terrorismo",
+        "mat_combates": "Enfrentamientos y acciones bélicas",
+        "EnfrentamientosAccionesBelicas": "Enfrentamientos y acciones bélicas",
+        "mat_detencion": "Detención",
+        "Detencion": "Detención",
+        "Disturbio": "Disturbio",
+        "Manifestacion": "Manifestación",
+        "Narcotrafico": "Narcotráfico",
+        "Extorsion": "Extorsión",
+        "Secuestro": "Secuestro",
+        "ViolenciaSexual": "Violencia sexual",
+        "ViolenciaIntrafamiliar": "Violencia intrafamiliar",
+        "LesionesPersonales": "Lesiones Personales",
+    }
+
     noticias_map = {}
     for b in bindings:
         uri = b["noticiaUri"]["value"]
         id_sufijo = uri.split("/")[-1]
 
         materia_uri = b.get("materiaUri", {}).get("value", "")
-        materia_label = b.get("materiaLabel", {}).get("value")
-        if not materia_label:
-            # Si no tiene etiqueta en authorities, limpiamos el final de la URI
-            materia_label = materia_uri.split("/")[-1].replace("mat_", "").replace("_", " ").capitalize() if materia_uri else "Sin categoría"
+        materia_slug = materia_uri.rstrip("/").split("/")[-1].split("#")[-1] if materia_uri else ""
+        materia_label = (
+            b.get("materiaLabel", {}).get("value")
+            or nombres_materias_fallback.get(materia_slug)
+            or (materia_slug if materia_slug else "Sin categoría")
+        )
 
         tiene_evento = "eventoUri" in b
         estado_calc = "OK" if tiene_evento else "Pendiente"
         municipio_label = b.get("municipioLabel", {}).get("value", "Bogotá D.C.")
 
+        encabezado_val = b.get("encabezado", {}).get("value", "Sin título")
+        cuerpo_val = b.get("cuerpo", {}).get("value", encabezado_val)
+        fuente_val = b.get("fuente", {}).get("value", "Bot")
+        fecha_val = b.get("fechaPub", {}).get("value", "")
+
         if uri not in noticias_map:
             noticias_map[uri] = {
                 "_id": id_sufijo,
                 "uri": uri,
-                "encabezado": b["encabezado"]["value"],
-                "resumen": b["cuerpo"]["value"],
-                "url_fuente": b["fuente"]["value"],
-                "fuente": b["fuente"]["value"],
-                "fecha_publicacion": b["fechaPub"]["value"],
+                "encabezado": encabezado_val,
+                "cuerpo": cuerpo_val,
+                "resumen": cuerpo_val,
+                "url_fuente": fuente_val,
+                "fuente": fuente_val,
+                "fecha_publicacion": fecha_val,
                 "estado": estado_calc,
                 "lugar": municipio_label,
                 "municipio": municipio_label,
-                "categorias": [{"_id": materia_uri, "nombre": materia_label}] if materia_label else []
+                "municipio_nombre": municipio_label,
+                "materia_uri": materia_uri,
+                "materia_nombre": materia_label,
+                "categorias": [{"_id": materia_uri, "nombre": materia_label}],
             }
         else:
-            # Si ya existe y aparece un evento asociado, aseguramos estado OK
             if tiene_evento:
                 noticias_map[uri]["estado"] = "OK"
 
     return list(noticias_map.values())
-
 
 # ==========================================
 # 3. CONTEO POR MATERIA PARA MateriasPage.jsx (GET)
